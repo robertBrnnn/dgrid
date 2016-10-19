@@ -9,7 +9,7 @@ Class defining docker containers and their relevant commands
 class Container(object):
 
     def __init__(self, json):
-        self.image = json['iamge']
+        self.image = json['image']
         self.cgroup_parent = None
         if 'volumes' in json:
             self.volumes = json['volumes']
@@ -41,12 +41,14 @@ class Container(object):
         self.add_argument('cpu_set', '--cpu-set')
         self.add_argument('memory', '--memory')
 
-        for volume in self.volumes:
-            # self.add_volume(volume)
-            self.add_param(volume, vol=True)
+        if hasattr(self, 'volumes'):
+            for volume in self.volumes:
+                # self.add_volume(volume)
+                self.add_param(volume, vol=True)
 
-        for env_var in self.environment_vars:
-            self.add_param(env_var, env=True)
+        if hasattr(self, 'environment_vars'):
+            for env_var in self.environment_vars:
+                self.add_param(env_var, env=True)
 
         self.add_argument('name', '--name')
         self.add_argument('work_dir', '--workdir')
@@ -56,13 +58,16 @@ class Container(object):
         return self.run_command
 
     def checkpoint(self):
-        return self.chk_command.append(self.name)
+        self.chk_command.append(self.name)
+        return self.chk_command
 
     def restore(self):
-        return self.rst_command.append(self.name)
+        self.rst_command.append(self.name)
+        return self.rst_command
 
     def cleanup(self):
-        return self.cln_command.append(self.name)
+        self.cln_command.append(self.name)
+        return self.cln_command
 
     def add_argument(self, name, suffix=None):
         """
@@ -72,14 +77,14 @@ class Container(object):
         :return: Null
         """
         if suffix is None:
-            if hasattr(self, name):
+            if hasattr(self, name) and getattr(self, name) is not None:
                 self.run_command.append(getattr(self, name))
         else:
-            if hasattr(self, name):
+            if hasattr(self, name) and getattr(self, name) is not None:
                 self.run_command.append(suffix + "=" + getattr(self, name))
 
     def add_param(self, param, vol=False, env=False):
         if vol:
-            self.run_command.append('-v').append(param)
+            self.run_command.append('-v ' + param)
         if env:
-            self.run_command.append('-e').append(param)
+            self.run_command.append('-e ' + param)
