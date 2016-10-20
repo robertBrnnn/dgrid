@@ -21,7 +21,9 @@ class Scheduler(object):
         # Import only the class of the scheduler we need -> no point in loading every scheduler
         scheduler_class = getattr(mapping, scheduler)
 
-        module = __import__('scheduling.schedulers.' + scheduler_class, fromlist=scheduler_class)
+        module = __import__('scheduling.schedulers.' + scheduler_class + '.'
+                            + scheduler_class, fromlist=scheduler_class)
+
         klass = getattr(module, scheduler_class)
 
         sched = klass(containers, hosts)

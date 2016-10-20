@@ -6,6 +6,7 @@ Implementation for docker execution on Torque 6.X series
 """
 
 from scheduling.schedule import Scheduler
+import socket
 
 
 class Torque6(Scheduler):
@@ -13,6 +14,7 @@ class Torque6(Scheduler):
         Scheduler.__init__(self, containers, hosts)
         self.containers = containers
         self.hosts = hosts
+        self.hostname = socket.gethostname()
 
     def run_job(self):
         pass
