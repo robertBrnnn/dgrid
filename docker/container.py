@@ -9,6 +9,10 @@ Class defining docker containers and their relevant commands
 class Container(object):
 
     def __init__(self, json):
+        """
+        Initializes a container object
+        :param json: Json object of container to instantiate
+        """
         self.image = json['image']
         self.cgroup_parent = None
         if 'volumes' in json:
@@ -84,6 +88,13 @@ class Container(object):
                 self.run_command.append(suffix + "=" + getattr(self, name))
 
     def add_param(self, param, vol=False, env=False):
+        """
+        Adds volumes or environment variables to the run command
+        :param param: the value to be assigned as environment variable or or volume mapping
+        :param vol: Checks if the parameter is a volume
+        :param env: checks if the volume is an environment variable
+        :return: Null
+        """
         if vol:
             self.run_command.append('-v ' + param)
         if env:

@@ -16,7 +16,7 @@ def termination_handler(signum, frame):
 
 
 def execute_job():
-    job = load_job(args.hf, args.df, args.sched)
+    job = load_job(args.hf, args.df)
     job.run_job()
 
 if __name__ == '__main__':
@@ -33,15 +33,15 @@ if __name__ == '__main__':
                         help="Docker json definition file",
                         required=True)
 
-    # Users wil specify scheduler type + version at first, may automate in future
-    parser.add_argument('--scheduler',
-                        dest='sched',
-                        help="Scheduler being used",
-                        required=True)
-
+    # This could be st in settings file as well, leave here for now
     parser.add_argument('--termsig',
                         dest='sig',
                         help="Integer value of signal to be passed to process pre termination")
+
+    # Job id will be needed for Torque
+    parser.add_argument('--job-id',
+                        dest='jobid',
+                        help="ID assigned to job by scheduler")
     args = parser.parse_args()
 
     execute_job()
