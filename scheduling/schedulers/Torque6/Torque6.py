@@ -17,6 +17,8 @@ class Torque6(Scheduler):
         self.hosts = hosts
         # get hostname so we can differentiate when running containers, no need to ssh into current machine to execute
         self.hostname = socket.gethostname()
+        # TODO: Initialize the command executor here with hosts, containers, hostname
+        # Executor used throughout the scheduler class, i.e. run_job will call self.executor.run()
 
     def run_job(self):
         pass

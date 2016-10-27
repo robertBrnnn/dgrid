@@ -8,6 +8,7 @@ Root execution script for dgrid
 import argparse
 import signal
 from scheduling.schedule import load_job
+from conf import settings
 
 
 def termination_handler(signum, frame):
@@ -33,11 +34,6 @@ if __name__ == '__main__':
                         help="Docker json definition file",
                         required=True)
 
-    # This could be st in settings file as well, leave here for now
-    parser.add_argument('--termsig',
-                        dest='sig',
-                        help="Integer value of signal to be passed to process pre termination")
-
     # Job id will be needed for Torque
     parser.add_argument('--job-id',
                         dest='jobid',
@@ -46,5 +42,5 @@ if __name__ == '__main__':
 
     execute_job()
 
-    # Lets assume it'll be SIGHUP for now...
-    signal.signal(signal.SIGHUP, termination_handler)
+    # Retrieve the termination signal from the settings file
+    signal.signal(getattr(settings, 'termination_signal'), termination_handler())
