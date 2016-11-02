@@ -22,7 +22,12 @@ def get_containers(dockerdef):
 
     for cont in data["containers"]:
         # key error will be thrown if required values are missing from the json, no need to catch error
-        containers.append(Container(cont))
+        if 'scale' in cont:
+            for i in range(cont['scale']):
+                containers.append(Container(cont))
+        else:
+            containers.append(Container(cont))
+
     return containers
 
 
