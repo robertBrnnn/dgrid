@@ -39,7 +39,9 @@ class SSHExecutor:
         self.kernel_memory_limit = ['cat', cgroups_dir + '/memory/torque/' + job_id + '/memory.kmem.limit_in_bytes']
         # Strip out current host from list
         try:
-            self.hosts = self.hosts.remove(self.hostname)
+            logger.debug(self.hosts)
+            self.hosts[:] = (value for value in self.hosts if value != self.hostname)
+            logger.debug(self.hosts)
         except ValueError:
             logger.error('Current host not in host list')
 
@@ -59,7 +61,10 @@ class SSHExecutor:
         """
         logger.debug('Assigning containers to hosts')
         for x in range(len(self.containers)):
-            host = self.hosts[x]
+            if isinstance(self.hosts, list):
+                host = self.hosts[x]
+            else:
+                host = self.hosts
             container = self.containers[x]
             identity = execute(self.run_container, container, host=host)
             self.containers_per_host[host] = identity
@@ -71,12 +76,12 @@ class SSHExecutor:
         :param container: Container to be run
         :return: Unique container ID
         """
-        cpushares = run(self.cpu_shares)
-        cpus = run(self.cpus)
-        memory = run(self.memory)
-        memory_swappiness = run(self.memory_swappiness)
-        memory_swap_limit = run(self.memory_swap_limit)
-        kernel_memory = run(self.kernel_memory_limit)
+        cpushares = run(' '.join(self.cpu_shares))
+        cpus = run(' '.join(self.cpus))
+        memory = run(' '.join(self.memory))
+        memory_swappiness = run(' '.join(self.memory_swappiness))
+        memory_swap_limit = run(' '.join(self.memory_swap_limit))
+        kernel_memory = run(' '.join(self.kernel_memory_limit))
 
         container.cpu_shares = cpushares
         container.cpu_set = cpus
@@ -86,7 +91,7 @@ class SSHExecutor:
         container.kernel_memory = kernel_memory
         container.name += ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(20)])
 
-        run(container.run())
+        run(' '.join(container.run()))
         return container.name
 
     def checkpoint_containers(self):
