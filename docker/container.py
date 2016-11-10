@@ -28,6 +28,9 @@ class Container(object):
         self.memory = None
         self.cpu_shares = None
         self.cpu_set = None
+        self.memory_swap = None
+        self.memory_swappiness = None
+        self.kernel_memory = None
         self.checkpointing = json['checkpointing']
         self.run_command = ['docker', 'run']
         self.chk_command = ['docker', 'checkpoint']
@@ -42,8 +45,11 @@ class Container(object):
         self.add_argument('interactive', '--interactive')
         self.add_argument('cgroup_parent', '--cgroup-parent')
         self.add_argument('cpu_shares', '--cpu-shares')
-        self.add_argument('cpu_set', '--cpu-set')
+        self.add_argument('cpu_set', '--cpuset-cpus')
         self.add_argument('memory', '--memory')
+        self.add_argument('memory_swap', '--memory-swap')
+        self.add_argument('memory_swappiness', '--memory-swappiness')
+        self.add_argument('kernel_memory', '--kernel-memory')
 
         if hasattr(self, 'volumes'):
             for volume in self.volumes:

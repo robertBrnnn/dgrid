@@ -9,6 +9,7 @@ from scheduling.utils import fileparser
 class SchedulerTester(unittest.TestCase):
 
     def setUp(self):
+        os.environ['PBS_JOB_ID'] = '8'
         self.cwd = os.getcwd()
         self.hosts = self.cwd + '/tests/scheduling/hostfile'
         self.cont = self.cwd + '/tests/scheduling/dockerdef1.json'

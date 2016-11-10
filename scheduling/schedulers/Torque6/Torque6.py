@@ -6,8 +6,12 @@ Implementation for docker execution on Torque 6.X series
 """
 
 from scheduling.schedule import Scheduler
+from scheduling.schedulers.Torque6.SSHExecutor import SSHExecutor
 from conf import settings
 import socket
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Torque6(Scheduler):
@@ -15,13 +19,15 @@ class Torque6(Scheduler):
         Scheduler.__init__(self, containers, hosts)
         self.containers = containers
         self.hosts = hosts
-        # get hostname so we can differentiate when running containers, no need to ssh into current machine to execute
-        self.hostname = socket.gethostname()
-        # TODO: Initialize the command executor here with hosts, containers, hostname
-        # Executor used throughout the scheduler class, i.e. run_job will call self.executor.run()
+
+        # Get execution parameter, default to SSH
+        exec_method = getattr(settings, 'Execution_Method', 'SSH')
+        if exec_method.upper() == 'SSH':
+            logger.debug('Loading SSH executor')
+            self.executor = SSHExecutor(self.containers, self.hosts)
 
     def run_job(self):
-        pass
+        self.executor.run()
 
     def checkpoint(self):
         pass

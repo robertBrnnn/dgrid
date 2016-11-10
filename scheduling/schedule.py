@@ -9,6 +9,10 @@ Instantiates the required scheduler only, and returns it to calling script
 from utils import fileparser
 from conf import settings
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class Scheduler(object):
 
@@ -27,6 +31,7 @@ class Scheduler(object):
         # Import only the class of the scheduler we need -> no point in loading every scheduler
         scheduler_class = getattr(settings, 'scheduler')
 
+        logger.debug('Loading scheduler class %s', scheduler_class)
         module = __import__('scheduling.schedulers.' + scheduler_class + '.'
                             + scheduler_class, fromlist=scheduler_class)
 

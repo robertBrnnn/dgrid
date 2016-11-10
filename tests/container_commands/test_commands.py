@@ -39,6 +39,19 @@ class CommandTestSuite(unittest.TestCase):
 
         assert ' '.join(self.container.run()) == expected_result
 
+    def test_run_command_w_cpusets(self):
+        self.container.cpu_shares = '1024'
+        self.container.cpu_set = '1'
+        self.container.memory_swap = '30'
+        self.container.memory = '444'
+        self.container.memory_swappiness = '30'
+        self.container.kernel_memory = '444'
+
+        assert ' '.join(self.container.run()) == "docker run --interactive=True --cpu-shares=1024 --cpuset-cpus=1" \
+                                                 " --memory=444 --memory-swap=30 --memory-swappiness=30" \
+                                                 " --kernel-memory=444 -v /var/www:/var/www -v /home/user:/home/user" \
+                                                 " --name=slave --workdir=/var/www ubuntu:14.04 sh command.sh"
+
     def test_run_command2(self):
         containerdef2 = """
         {

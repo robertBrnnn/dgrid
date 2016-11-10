@@ -5,6 +5,7 @@ Email:  robert.brnnn@gmail.com
 Root execution script for dgrid
 """
 
+import logging
 import argparse
 import signal
 from scheduling.schedule import load_job
@@ -40,7 +41,16 @@ if __name__ == '__main__':
                         help="ID assigned to job by scheduler")
     args = parser.parse_args()
 
+    if getattr(settings, 'DEBUG'):
+        logging.basicConfig(format='%(levelname)s [%(name)s] : %(message)s  %(asctime)s', level=logging.DEBUG)
+        logger = logging.getLogger(__name__)
+        logger.debug('Debug logging started')
+    else:
+        logging.basicConfig(format='%(levelname)s:%(message)s  %(asctime)s', level=logging.INFO)
+        logger = logging.getLogger(__name__)
+        logger.info('Logging started')
+
     execute_job()
 
     # Retrieve the termination signal from the settings file
-    signal.signal(getattr(settings, 'termination_signal'), termination_handler())
+    signal.signal(getattr(settings, 'termination_signal'), termination_handler)

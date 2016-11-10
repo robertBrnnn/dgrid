@@ -5,8 +5,11 @@ Email:  robert.brnnn@gmail.com
 Utilities for parsing docker definition files and host file
 """
 
+import logging
 import json
 from docker.container import Container
+
+logger = logging.getLogger(__name__)
 
 
 def get_containers(dockerdef):
@@ -16,7 +19,7 @@ def get_containers(dockerdef):
     :return: Container array
     """
     containers = []
-
+    logger.debug('Loading container definition file')
     with open(dockerdef) as data_file:
         data = json.load(data_file)
 
@@ -38,7 +41,7 @@ def get_hosts(hostfile):
     :return: Hosts array
     """
     hosts = []
-
+    logger.debug('Loading host file')
     with open(hostfile, 'r') as f:
         host_list = f.read().splitlines()
         for host in host_list:
