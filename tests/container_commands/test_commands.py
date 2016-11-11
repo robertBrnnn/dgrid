@@ -1,6 +1,7 @@
-from docker.container import Container
-import unittest
 import json
+import unittest
+
+from dgrid.docker.container import Container
 
 
 class CommandTestSuite(unittest.TestCase):

@@ -15,16 +15,23 @@ class Container(object):
         """
         self.image = json['image']
         self.cgroup_parent = None
+
         if 'volumes' in json:
             self.volumes = json['volumes']
+
         self.name = json['name']
+
         if 'run_cmd' in json:
             self.cmd = json['run_cmd']
+
         if 'environment_variables' in json:
             self.environment_vars = json['environment_variables']
+
         self.interactive = json['interactive']
+
         if 'work_dir' in json:
             self.work_dir = json['work_dir']
+
         self.memory = None
         self.cpu_shares = None
         self.cpu_set = None

@@ -6,10 +6,10 @@ Calls methods to read the host file and docker definition file and return them a
 Instantiates the required scheduler only, and returns it to calling script
 """
 
-from utils import fileparser
-from conf import settings
-
 import logging
+
+from dgrid.conf import settings
+from dgrid.scheduling.utils import fileparser
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +29,10 @@ class Scheduler(object):
         :return: Required scheduler
         """
         # Import only the class of the scheduler we need -> no point in loading every scheduler
-        scheduler_class = getattr(settings, 'scheduler')
+        scheduler_class = settings.scheduler
 
         logger.debug('Loading scheduler class %s', scheduler_class)
-        module = __import__('scheduling.schedulers.' + scheduler_class + '.'
+        module = __import__('dgrid.scheduling.schedulers.' + scheduler_class + '.'
                             + scheduler_class, fromlist=scheduler_class)
 
         klass = getattr(module, scheduler_class)

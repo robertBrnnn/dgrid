@@ -4,5 +4,9 @@
 .idea/workspace.xml
 .idea/vcs.xml
 .coverage
+build
+DGrid.egg-info
+dist
 cover
+tests/scheduling/generatedHF
 *.pyc

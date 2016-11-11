@@ -1,6 +1,7 @@
-from scheduling.utils import fileparser
-import unittest
 import os
+import unittest
+
+from dgrid.scheduling.utils import fileparser
 
 
 class FileParserTests(unittest.TestCase):

@@ -5,11 +5,11 @@ Email:  robert.brnnn@gmail.com
 Root execution script for dgrid
 """
 
-import logging
 import argparse
+import logging
 import signal
-from scheduling.schedule import load_job
 from conf import settings
+from scheduling.schedule import load_job
 
 
 def termination_handler(signum, frame):
@@ -17,11 +17,12 @@ def termination_handler(signum, frame):
     print 'Pre-Termination signal received, checkpointing running containers'
 
 
-def execute_job():
-    job = load_job(args.hf, args.df)
+def execute_job(hf, df):
+    job = load_job(hf, df)
     job.run_job()
 
-if __name__ == '__main__':
+
+def main():
     # Build command line
     parser = argparse.ArgumentParser(description='Command Line utility for executing batch tasks in Docker')
 
@@ -35,13 +36,9 @@ if __name__ == '__main__':
                         help="Docker json definition file",
                         required=True)
 
-    # Job id will be needed for Torque
-    parser.add_argument('--job-id',
-                        dest='jobid',
-                        help="ID assigned to job by scheduler")
     args = parser.parse_args()
 
-    if getattr(settings, 'DEBUG'):
+    if settings.DEBUG:
         logging.basicConfig(format='%(levelname)s [%(name)s] : %(message)s  %(asctime)s', level=logging.DEBUG)
         logger = logging.getLogger(__name__)
         logger.debug('Debug logging started')
@@ -50,7 +47,7 @@ if __name__ == '__main__':
         logger = logging.getLogger(__name__)
         logger.info('Logging started')
 
-    execute_job()
-
     # Retrieve the termination signal from the settings file
-    signal.signal(getattr(settings, 'termination_signal'), termination_handler)
+    signal.signal(settings.termination_signal, termination_handler)
+
+    execute_job(args.hf, args.df)

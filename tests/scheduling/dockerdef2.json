@@ -1,0 +1,28 @@
+{
+  "containers":[{
+  	  "interactive": "False",
+      "image": "ubuntu:14.04",
+      "name": "test",
+      "volumes": [
+        "/var/www:/var/www",
+        "/home/user:/home/user"],
+      "work_dir": "/var/www",
+      "checkpointing": "True",
+      "run_cmd": "sh command.sh"
+    },
+    {
+      "image": "ubuntu:14.04",
+      "name": "head",
+      "interactive": "False",
+      "volumes": [
+        "/var/www:/var/www",
+        "/home/user:/home/user"],
+      "environment_variables": [
+        "variable=value"
+      ],
+      "work_dir": "/var/www",
+      "checkpointing": "False",
+      "run_cmd": "sh command.sh"
+    }
+  ]
+}

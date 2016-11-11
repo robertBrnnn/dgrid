@@ -5,11 +5,12 @@ Email:  robert.brnnn@gmail.com
 Implementation for docker execution on Torque 6.X series
 """
 
-from scheduling.schedule import Scheduler
-from scheduling.schedulers.Torque6.SSHExecutor import SSHExecutor
-from conf import settings
-import socket
 import logging
+
+from dgrid.scheduling.schedule import Scheduler
+from dgrid.scheduling.schedulers.Torque6.SSHExecutor import SSHExecutor
+
+from dgrid.conf import settings
 
 logger = logging.getLogger(__name__)
 

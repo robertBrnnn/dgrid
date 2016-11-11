@@ -3,16 +3,17 @@ Author: Robert Brennan
 SSH execution class for use with Torque 6, with cpu sets
 """
 
-from conf import settings
-from fabric import tasks
-from fabric.api import run, task
-from fabric.network import disconnect_all
-from fabric.tasks import execute
-import os
 import logging
-import socket
+import os
 import random
+import socket
 import string
+
+from fabric.api import run
+from fabric.tasks import execute
+from dgrid.scheduling.utils.Errors import HostValueError, InteractiveContainerNotSpecified
+
+from dgrid.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,10 @@ class SSHExecutor:
         self.containers = containers
         # get hostname so we can differentiate when running containers, no need to ssh into current machine to execute
         self.hostname = socket.gethostname()
+        self.int_container = None
+
         job_id = os.environ.get('PBS_JOB_ID')
-        cgroups_dir = getattr(settings, 'cgroup_dir')
+        cgroups_dir = settings.cgroup_dir
 
         self.cpu_shares = ['cat', cgroups_dir + '/cpu/torque/' + job_id + '/cpu.shares']
         self.cpus = ['cat', cgroups_dir + '/cpuset/torque/' + job_id + '/cpuset.cpus']
@@ -37,19 +40,23 @@ class SSHExecutor:
         self.memory_swappiness = ['cat', cgroups_dir + '/memory/torque/' + job_id + '/memory.swappiness']
         self.memory_swap_limit = ['cat', cgroups_dir + '/memory/torque/' + job_id + '/memory.memsw.limit_in_bytes']
         self.kernel_memory_limit = ['cat', cgroups_dir + '/memory/torque/' + job_id + '/memory.kmem.limit_in_bytes']
+
         # Strip out current host from list
         try:
             logger.debug(self.hosts)
-            self.hosts[:] = (value for value in self.hosts if value != self.hostname)
+            self.hosts.remove(self.hostname)
             logger.debug(self.hosts)
         except ValueError:
-            logger.error('Current host not in host list')
+            raise HostValueError('Hostname of execution host not in assigned hosts list')
 
         # Get the interactive container, and remove from list
         for container in self.containers:
-            if container.interactive:
+            if container.interactive == 'True':
                 self.int_container = container
-                self.containers.remove(container)
+                self.containers.remove(self.int_container)
+
+        if self.int_container is None:
+            raise InteractiveContainerNotSpecified('An interactive container must be specified for logging')
 
         self.containers_per_host = dict()
 

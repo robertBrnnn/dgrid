@@ -5,9 +5,10 @@ Email:  robert.brnnn@gmail.com
 Utilities for parsing docker definition files and host file
 """
 
-import logging
 import json
-from docker.container import Container
+import logging
+
+from dgrid.docker.container import Container
 
 logger = logging.getLogger(__name__)
 
