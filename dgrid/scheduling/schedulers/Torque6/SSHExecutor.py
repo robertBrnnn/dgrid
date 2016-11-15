@@ -131,7 +131,7 @@ class SSHExecutor:
         container.memory_swappiness = memory_swappiness
         container.memory_swap = memory_swap_limit + "b"
         container.kernel_memory = kernel_memory + "b"
-        container.name += ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(20)])
+        container.name += ''.join([random.choice(string.ascii_letters + string.digits) for n in range(20)])
 
         run(' '.join(container.run()) +
             " && pbs_track -j %i -a $(docker inspect --format '{{ .State.Pid }}' %s)"
@@ -146,7 +146,7 @@ class SSHExecutor:
         self.setup_constraints()
 
         # Randomise the containers name
-        self.int_container.name += ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(20)])
+        self.int_container.name += ''.join([random.choice(string.ascii_letters + string.digits) for n in range(20)])
 
         proc = Popen(self.int_container.run(), stdout=PIPE, stderr=PIPE)
         self.local_run = True

@@ -63,7 +63,7 @@ class SchedulerTester(unittest.TestCase):
         os.system('cd ' + self.cwd + '/TestingUtilities/ && docker build --build-arg HOM=$HOME -t dgrid:test .')
 
         for i in range(3):
-            os.system('docker run -d -v /var/run/docker.sock:/run/docker.sock -v $(which docker):/bin/docker'
+            os.system('docker run -d -v /var/run/docker.sock:/run/docker.sock'
                       ' -p 900' + str(i) + ':22 dgrid:test')
 
         # create hostfile
