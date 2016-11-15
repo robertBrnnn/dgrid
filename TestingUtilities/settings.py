@@ -12,9 +12,6 @@ Execution_Method = 'SSH'
 # Termination signals
 termination_signal = SIGTERM
 
-# Cgroups directory of Torque
-cgroup_dir = '/sys/fs/cgroup'
-
 '''
 Image cleanup possibilities:
 0) No removal of images. Must be carried out manually or automated job.
@@ -22,5 +19,5 @@ Image cleanup possibilities:
 2) Remove only images associated with the job.
 '''
 # image_cleanup = 0
-image_cleanup = 1
-# image_cleanup = 2
+# image_cleanup = 1
+image_cleanup = 2

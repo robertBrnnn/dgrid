@@ -28,6 +28,7 @@ class Container(object):
             self.environment_vars = json['environment_variables']
 
         self.interactive = json['interactive']
+        self.detach = 'False'
 
         if 'work_dir' in json:
             self.work_dir = json['work_dir']
@@ -43,13 +44,23 @@ class Container(object):
         self.chk_command = ['docker', 'checkpoint']
         self.rst_command = ['docker', 'restore']
         self.cln_command = ['docker', 'rm', '-fv']
+        self.term_command = ['docker', 'stop']
+        self.image_cleanup = ['docker', 'rmi', self.image]
+        # Save the assigned host with the container object
+        self.execution_host = None
 
     def run(self):
         """
         Builds the command to execute docker container
         :return: Command string for running container
         """
+        if len(self.run_command) > 2:
+            return self.run_command
+
         self.add_argument('interactive', '--interactive')
+        if self.interactive == 'False':
+            self.detach = 'True'
+            self.add_argument('detach', '--detach')
         self.add_argument('cgroup_parent', '--cgroup-parent')
         self.add_argument('cpu_shares', '--cpu-shares')
         self.add_argument('cpu_set', '--cpuset-cpus')
@@ -83,8 +94,14 @@ class Container(object):
         return self.rst_command
 
     def cleanup(self):
-        self.cln_command.append(self.name)
+        if len(self.cln_command) == 3:
+            self.cln_command.append(self.name)
         return self.cln_command
+
+    def terminate(self):
+        if len(self.term_command) == 2:
+            self.term_command.append(self.name)
+        return self.term_command
 
     def add_argument(self, name, suffix=None):
         """

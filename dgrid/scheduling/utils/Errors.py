@@ -11,3 +11,8 @@ class HostValueError(ValueError):
 class InteractiveContainerNotSpecified(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
+
+
+class RemoteExecutionError(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)

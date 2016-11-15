@@ -3,6 +3,7 @@
 .idea/modules.xml
 .idea/workspace.xml
 .idea/vcs.xml
+.idea/
 .coverage
 build
 DGrid.egg-info
@@ -10,3 +11,4 @@ dist
 cover
 tests/scheduling/generatedHF
 *.pyc
+*~

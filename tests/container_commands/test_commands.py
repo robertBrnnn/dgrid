@@ -30,6 +30,12 @@ class CommandTestSuite(unittest.TestCase):
         expected_result = "docker rm -fv slave"
         assert ' '.join(self.container.cleanup()) == expected_result
 
+    def test_termination_command(self):
+        expected_result = "docker stop slave"
+        print self.container.terminate()
+        print ' '.join(self.container.terminate())
+        assert ' '.join(self.container.terminate()) == expected_result
+
     def test_restore_command(self):
         expected_result = "docker restore slave"
         assert ' '.join(self.container.restore()) == expected_result

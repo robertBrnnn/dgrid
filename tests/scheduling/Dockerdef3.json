@@ -1,0 +1,25 @@
+{
+  "containers":[{
+  	  "interactive": "True",
+      "image": "ubuntu:14.04",
+      "name": "head",
+      "checkpointing": "True",
+      "run_cmd": "hostname"
+    },
+    {
+  	  "interactive": "False",
+      "image": "ubuntu:14.04",
+      "name": "slave",
+      "checkpointing": "True",
+      "run_cmd": "bash -c 'for i in {1..2}; do echo $i; sleep 60; done'"
+    },
+    {
+      "image": "ubuntu:14.04",
+      "name": "slave",
+      "interactive": "False",
+      "scale": 2,
+      "checkpointing": "False",
+      "run_cmd": "bash -c 'while true; do sleep 60; done;'"
+    }
+  ]
+}

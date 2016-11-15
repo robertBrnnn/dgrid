@@ -31,13 +31,10 @@ class Torque6(Scheduler):
         self.executor.run()
 
     def checkpoint(self):
-        pass
+        self.executor.checkpoint_containers()
 
     def restore(self):
-        pass
+        self.executor.restore()
 
     def terminate(self):
-        pass
-
-    def cleanup(self):
-        pass
+        self.executor.terminate_clean()
