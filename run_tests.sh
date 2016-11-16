@@ -4,6 +4,8 @@
 # Creates a dummy cgroups directory in users home directory on the host and in docker containers used for unit tests
 # Dummy cgroups directory deleted after execution, and all containers are removed.
 
+# NOTE: Ports 9000-9002 inclusive should be free, so as to run containers required for tests
+
 echo 'Modifying settings files'
 cp TestingUtilities/settings.py TestingUtilities/settings.py.bak
 printf "\ncgroup_dir = \"$HOME/dgrid/cgroup\"" >> TestingUtilities/settings.py
@@ -22,9 +24,17 @@ fi
 mv dgrid/conf/settings.py dgrid/conf/settings.py.bak
 cp TestingUtilities/settings.py dgrid/conf/settings.py
 
-nosetests --with-cover --cover-package=dgrid --cover-html
+arg=$1
+cover="cover"
+if [ "$arg" = "$cover" ]; then
+  echo "Running with html coverage"
+  nosetests --with-cover --cover-package=dgrid --cover-html
+else
+  echo "Running without html coverage"
+  nosetests --with-cover --cover-package=dgrid
+fi
 
-echo 'Cleanning Up'
+echo 'Cleaning Up'
 rm dgrid/conf/settings.py
 mv dgrid/conf/settings.py.bak dgrid/conf/settings.py
 rm -rf $HOME/dgrid

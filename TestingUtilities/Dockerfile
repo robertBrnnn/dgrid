@@ -1,5 +1,6 @@
+# Inspired by https://docs.docker.com/engine/examples/running_ssh_service/
+# Creates an image for mocking a torque grid with cgroups at a user defined location
 FROM ubuntu:16.04
-MAINTAINER Sven Dowideit <SvenDowideit@docker.com>
 
 ARG HOM
 
@@ -23,6 +24,9 @@ RUN mkdir -p $HOM/dgrid/cgroup/cpu/torque/8/ $HOM/dgrid/cgroup/cpuset/torque/8/ 
     echo '524288000' >> $HOM/dgrid/cgroup/memory/torque/8/memory.memsw.limit_in_bytes && \
     echo '524288000' >> $HOM/dgrid/cgroup/memory/torque/8/memory.kmem.limit_in_bytes
 
-RUN apt-get install -y curl && curl -L https://get.docker.com/builds/Linux/x86_64/docker-1.10.3 > /usr/bin/docker && chmod +x /usr/bin/docker
+RUN apt-get install -y curl && \
+    curl -L https://get.docker.com/builds/Linux/x86_64/docker-1.10.3 > /usr/bin/docker && \
+    chmod +x /usr/bin/docker
+
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]

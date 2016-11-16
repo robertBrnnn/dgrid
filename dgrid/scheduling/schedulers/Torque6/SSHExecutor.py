@@ -189,6 +189,7 @@ class SSHExecutor:
         logger.debug("stopping and removing remote containers")
         for container in self.containers:
             if container.execution_host is not None:
+                logger.debug('Removing container: ' + container.name + " On " + container.execution_host)
                 command = ' '.join(container.terminate()) + " && " + ' '.join(container.cleanup())
                 execute(self.execute_remote, command, host=container.execution_host)
 
