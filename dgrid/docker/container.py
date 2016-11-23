@@ -27,8 +27,12 @@ class Container(object):
         if 'environment_variables' in json:
             self.environment_vars = json['environment_variables']
 
-        self.interactive = json['interactive']
-        self.detach = 'False'
+        if json['interactive'] == 'True':
+            self.interactive = 'True'
+            self.detach = 'False'
+        else:
+            self.detach = 'True'
+            self.interactive = 'False'
 
         if 'work_dir' in json:
             self.work_dir = json['work_dir']
@@ -40,11 +44,11 @@ class Container(object):
         self.memory_swappiness = None
         self.kernel_memory = None
         self.checkpointing = json['checkpointing']
-        self.run_command = ['docker', 'run']
-        self.chk_command = ['docker', 'checkpoint']
-        self.rst_command = ['docker', 'restore']
-        self.cln_command = ['docker', 'rm', '-fv']
-        self.term_command = ['docker', 'stop']
+        self.run_command = None
+        self.chk_command = None
+        self.rst_command = None
+        self.cln_command = None
+        self.term_command = None
         self.image_cleanup = ['docker', 'rmi', self.image]
         # Save the assigned host with the container object
         self.execution_host = None
@@ -54,13 +58,11 @@ class Container(object):
         Builds the command to execute docker container
         :return: Command string for running container
         """
-        if len(self.run_command) > 2:
-            return self.run_command
+        self.run_command = ['docker', 'run']
 
+        # Add arguments to run command. Structure of docker run command must be adhered to.
         self.add_argument('interactive', '--interactive')
-        if self.interactive == 'False':
-            self.detach = 'True'
-            self.add_argument('detach', '--detach')
+        self.add_argument('detach', '--detach')
         self.add_argument('cgroup_parent', '--cgroup-parent')
         self.add_argument('cpu_shares', '--cpu-shares')
         self.add_argument('cpu_set', '--cpuset-cpus')
@@ -81,26 +83,45 @@ class Container(object):
         self.add_argument('name', '--name')
         self.add_argument('work_dir', '--workdir')
         self.add_argument('image')
-        self.add_argument('cmd')
+        for arg in self.cmd:
+            self.add_param(arg, cmd=True)
 
         return self.run_command
 
     def checkpoint(self):
+        """
+        Builds checkpoint command
+        :return: Command for Checkpointing container
+        """
+        self.chk_command = ['docker', 'checkpoint']
         self.chk_command.append(self.name)
         return self.chk_command
 
     def restore(self):
+        """
+        Builds docker restore command
+        :return: Command for restoring container
+        """
+        self.rst_command = ['docker', 'restore']
         self.rst_command.append(self.name)
         return self.rst_command
 
     def cleanup(self):
-        if len(self.cln_command) == 3:
-            self.cln_command.append(self.name)
+        """
+        Builds command for container removal
+        :return: Command to remove the docker container, with force and volumes
+        """
+        self.cln_command = ['docker', 'rm', '-fv']
+        self.cln_command.append(self.name)
         return self.cln_command
 
     def terminate(self):
-        if len(self.term_command) == 2:
-            self.term_command.append(self.name)
+        """
+        Builds command for stopping running container
+        :return: Command to stop running container
+        """
+        self.term_command = ['docker', 'stop']
+        self.term_command.append(self.name)
         return self.term_command
 
     def add_argument(self, name, suffix=None):
@@ -117,15 +138,20 @@ class Container(object):
             if hasattr(self, name) and getattr(self, name) is not None:
                 self.run_command.append(suffix + "=" + getattr(self, name))
 
-    def add_param(self, param, vol=False, env=False):
+    def add_param(self, param, vol=False, env=False, cmd=False):
         """
         Adds volumes or environment variables to the run command
         :param param: the value to be assigned as environment variable or or volume mapping
         :param vol: Checks if the parameter is a volume
         :param env: checks if the volume is an environment variable
+        :param cmd: Checks if the parameter is part of the run command
         :return: Null
         """
         if vol:
-            self.run_command.append('-v ' + param)
+            self.run_command.append('-v')
+            self.run_command.append(param)
         if env:
-            self.run_command.append('-e ' + param)
+            self.run_command.append('-e')
+            self.run_command.append(param)
+        if cmd:
+            self.run_command.append(param)

@@ -16,7 +16,7 @@ class CommandTestSuite(unittest.TestCase):
             "/home/user:/home/user"],
           "work_dir": "/var/www",
           "checkpointing": "True",
-          "run_cmd": "sh command.sh"
+          "run_cmd": [ "sh", "command.sh" ]
         }
         """
         data = json.loads(containerdef1)
@@ -32,8 +32,7 @@ class CommandTestSuite(unittest.TestCase):
 
     def test_termination_command(self):
         expected_result = "docker stop slave"
-        print self.container.terminate()
-        print ' '.join(self.container.terminate())
+
         assert ' '.join(self.container.terminate()) == expected_result
 
     def test_restore_command(self):
@@ -41,7 +40,8 @@ class CommandTestSuite(unittest.TestCase):
         assert ' '.join(self.container.restore()) == expected_result
 
     def test_run_command1(self):
-        expected_result = "docker run --interactive=True -v /var/www:/var/www -v /home/user:/home/user --name=slave " \
+        expected_result = "docker run --interactive=True --detach=False" \
+                          " -v /var/www:/var/www -v /home/user:/home/user --name=slave " \
                           "--workdir=/var/www ubuntu:14.04 sh command.sh"
 
         assert ' '.join(self.container.run()) == expected_result
@@ -54,7 +54,8 @@ class CommandTestSuite(unittest.TestCase):
         self.container.memory_swappiness = '30'
         self.container.kernel_memory = '444'
 
-        assert ' '.join(self.container.run()) == "docker run --interactive=True --cpu-shares=1024 --cpuset-cpus=1" \
+        assert ' '.join(self.container.run()) == "docker run --interactive=True --detach=False" \
+                                                 " --cpu-shares=1024 --cpuset-cpus=1" \
                                                  " --memory=444 --memory-swap=30 --memory-swappiness=30" \
                                                  " --kernel-memory=444 -v /var/www:/var/www -v /home/user:/home/user" \
                                                  " --name=slave --workdir=/var/www ubuntu:14.04 sh command.sh"
@@ -70,13 +71,14 @@ class CommandTestSuite(unittest.TestCase):
             "RUN_TESTS=true"],
           "work_dir": "/var/www",
           "checkpointing": "True",
-          "run_cmd": "sh command.sh"
+          "run_cmd": ["sh", "command.sh"]
         }
         """
         data = json.loads(containerdef2)
         self.container = Container(data)
 
-        expected_result = "docker run --interactive=True -e BINARY_HOME=/usr/bin -e RUN_TESTS=true --name=slave " \
+        expected_result = "docker run --interactive=True --detach=False " \
+                          "-e BINARY_HOME=/usr/bin -e RUN_TESTS=true --name=slave " \
                           "--workdir=/var/www ubuntu:14.04 sh command.sh"
 
         assert ' '.join(self.container.run()) == expected_result
@@ -89,13 +91,37 @@ class CommandTestSuite(unittest.TestCase):
           "name": "slave",
           "work_dir": "/var/www",
           "checkpointing": "True",
-          "run_cmd": "sh command.sh"
+          "run_cmd": ["sh", "command.sh"]
         }
         """
 
         data = json.loads(containerdef3)
         self.container = Container(data)
 
-        expected_result = "docker run --interactive=True --name=slave --workdir=/var/www ubuntu:14.04 sh command.sh"
+        expected_result = "docker run --interactive=True --detach=False" \
+                          " --name=slave --workdir=/var/www ubuntu:14.04 sh command.sh"
+
+        assert ' '.join(self.container.run()) == expected_result
+
+    def test_run_command_detach(self):
+        containerdef = """
+        {
+          "interactive": "False",
+          "image": "ubuntu:14.04",
+          "name": "slave",
+          "environment_variables": [
+            "BINARY_HOME=/usr/bin",
+            "RUN_TESTS=true"],
+          "work_dir": "/var/www",
+          "checkpointing": "True",
+          "run_cmd": ["sh", "command.sh"]
+        }
+        """
+
+        data = json.loads(containerdef)
+        self.container = Container(data)
+        expected_result = "docker run --interactive=False --detach=True " \
+                          "-e BINARY_HOME=/usr/bin -e RUN_TESTS=true --name=slave " \
+                          "--workdir=/var/www ubuntu:14.04 sh command.sh"
 
         assert ' '.join(self.container.run()) == expected_result
