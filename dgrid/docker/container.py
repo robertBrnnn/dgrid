@@ -37,6 +37,7 @@ class Container(object):
         if 'work_dir' in json:
             self.work_dir = json['work_dir']
 
+        self.user = None
         self.memory = None
         self.cpu_shares = None
         self.cpu_set = None
@@ -70,6 +71,7 @@ class Container(object):
         self.add_argument('memory_swap', '--memory-swap')
         self.add_argument('memory_swappiness', '--memory-swappiness')
         self.add_argument('kernel_memory', '--kernel-memory')
+        self.add_argument('user', '--user')
 
         if hasattr(self, 'volumes'):
             for volume in self.volumes:
