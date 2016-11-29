@@ -38,3 +38,4 @@ class Torque6(Scheduler):
 
     def terminate(self):
         self.executor.terminate_clean()
+        self.executor.remove_images()

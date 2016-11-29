@@ -131,6 +131,8 @@ class SSHExecutor:
             logger("Image removal failed")
             sys.exit("Aborting")
 
+        sys.exit(0)
+
     def run_container(self, container):
         """
         Gets the constraints placed on the container by Torque and assigns them to the container
