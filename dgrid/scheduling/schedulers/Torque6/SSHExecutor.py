@@ -249,21 +249,6 @@ class SSHExecutor:
     def remove_images(self):
         if settings.image_cleanup == 1:
             logger.debug("Removing all unused images")
-            '''
-            command = "DANGLING_IMAGES=$(docker images -qf \"dangling=true\") && " \
-                      "if [[ -n $DANGLING_IMAGES ]]; then docker rmi \"$DANGLING_IMAGES\"; fi && " \
-                      "USED_IMAGES=($(docker ps -a --format '{{.Image}}'" \
-                      " | sort -u | uniq | awk -F ':' '$2{print $1\":\"$2}!$2{print $1\":latest\"}')) && " \
-                      "ALL_IMAGES=($(docker images --format '{{.Repository}}:{{.Tag}}' | sort -u )) && " \
-                      "for i in \"${ALL_IMAGES[@]}\"; do UNUSED=true; " \
-                      "for j in \"${USED_IMAGES[@]}\"; " \
-                      "do if [[ \"$i\" == \"$j\" ]]; " \
-                      "then UNUSED=false; " \
-                      "fi done; " \
-                      "if [[ \"$UNUSED\" == true ]]; " \
-                      "then docker rmi \"$i\"; " \
-                      "fi done"
-            '''
             command = ['sh', self.script_dir + 'remove_unused.sh']
             for container in self.containers:
                 if container.execution_host is not None:

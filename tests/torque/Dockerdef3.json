@@ -11,7 +11,7 @@
       "image": "ubuntu:14.04",
       "name": "slave",
       "checkpointing": "True",
-      "run_cmd": "bash -c 'for i in {1..2}; do echo $i; sleep 2; done'",
+      "run_cmd": ["bash", "-c", "'for i in {1..2}; do echo $i; sleep 2; done'" ],
       "scale": 3
     }
   ]

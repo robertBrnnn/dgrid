@@ -18,7 +18,7 @@ class SSHExecutorTests(unittest.TestCase):
         # Generate the host file so that it contains current hostname
         self.host_template = "host1\nhost2\nhost3\n"
         # Set job ID to avoid errors
-        os.environ['PBS_JOB_ID'] = '8'
+        os.environ['PBS_JOBID'] = '8'
         self.cwd = os.getcwd()
         self.hostname = socket.gethostname()
         self.host_template += socket.gethostname()
