@@ -37,5 +37,7 @@ class Torque6(Scheduler):
         self.executor.restore()
 
     def terminate(self):
+        logger.debug("Terminate called")
         self.executor.terminate_clean()
+        logger.debug("Remove images")
         self.executor.remove_images()
