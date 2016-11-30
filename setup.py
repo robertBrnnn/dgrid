@@ -63,6 +63,7 @@ setup(
     version=__version__,
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     install_requires=reqs,
+    data_files=[('/dgrid-scripts/', ['scripts/remove_unused.sh'])],
     package_data={
         '': ['*.md'],
     },

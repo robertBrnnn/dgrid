@@ -9,6 +9,7 @@ import sys
 import random
 import socket
 import string
+import re
 from subprocess import Popen, PIPE
 from fabric.api import run, env
 from fabric.tasks import execute
@@ -55,6 +56,11 @@ class SSHExecutor:
 
         self.kernel_memory_limit = ['cat', cgroups_dir + '/memory/torque/'
                                     + self.job_id + '/memory.kmem.limit_in_bytes']
+
+        context = os.path.realpath(__file__)
+        path = re.sub('dgrid/scheduling/schedulers/Torque6/SSHExecutor\.py.*', "", context)
+        self.script_dir = path + "/dgrid-scripts/"
+        logger.debug("script directory is: " + self.script_dir)
 
         # Strip out current host from list
         try:
@@ -243,6 +249,7 @@ class SSHExecutor:
     def remove_images(self):
         if settings.image_cleanup == 1:
             logger.debug("Removing all unused images")
+            '''
             command = "DANGLING_IMAGES=$(docker images -qf \"dangling=true\") && " \
                       "if [[ -n $DANGLING_IMAGES ]]; then docker rmi \"$DANGLING_IMAGES\"; fi && " \
                       "USED_IMAGES=($(docker ps -a --format '{{.Image}}'" \
@@ -256,10 +263,11 @@ class SSHExecutor:
                       "if [[ \"$UNUSED\" == true ]]; " \
                       "then docker rmi \"$i\"; " \
                       "fi done"
-
+            '''
+            command = ['sh', self.script_dir + 'remove_unused.sh']
             for container in self.containers:
                 if container.execution_host is not None:
-                    execute(self.execute_remote, command, host=container.execution_host)
+                    execute(self.execute_remote, " ".join(command), host=container.execution_host)
 
             image_cleanup = Popen(command, stdout=PIPE, stderr=PIPE)
 
