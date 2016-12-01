@@ -273,7 +273,7 @@ class SSHExecutor:
             logger.debug("Removing images associated with job")
             for container in self.containers:
                 if settings.remove_unreferenced_containers:
-                    command = unref_command.append(container.image_cleanup)
+                    command = unref_command + container.image_cleanup
                 else:
                     command = container.image_cleanup
                 if container.execution_host is not None:
