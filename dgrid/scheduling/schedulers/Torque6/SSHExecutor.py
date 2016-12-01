@@ -93,9 +93,9 @@ class SSHExecutor:
         logger.debug('Assigning containers to hosts')
         for x in range(len(self.containers)):
             if isinstance(self.hosts, list):
-                host = self.hosts[x].decode('utf-8')
+                host = self.hosts[x]
             else:
-                host = self.hosts.decode('utf-8')
+                host = self.hosts
 
             container = self.containers[x]
 
@@ -247,9 +247,17 @@ class SSHExecutor:
                 execute(self.execute_remote, command, host=container.execution_host)
 
     def remove_images(self):
+        unref_command = ['sh', self.script_dir + settings.unreferenced_containers_script, ' && ']
+
         if settings.image_cleanup == 1:
             logger.debug("Removing all unused images")
-            command = ['sh', self.script_dir + 'remove_unused.sh']
+
+            base_command = ['sh', self.script_dir + settings.unused_images_script]
+            if settings.remove_unreferenced_containers:
+                command = unref_command + base_command
+            else:
+                command = base_command
+
             for container in self.containers:
                 if container.execution_host is not None:
                     execute(self.execute_remote, " ".join(command), host=container.execution_host)
@@ -264,10 +272,19 @@ class SSHExecutor:
         if settings.image_cleanup == 2:
             logger.debug("Removing images associated with job")
             for container in self.containers:
+                if settings.remove_unreferenced_containers:
+                    command = unref_command.append(container.image_cleanup)
+                else:
+                    command = container.image_cleanup
                 if container.execution_host is not None:
-                    execute(self.execute_remote, ' '.join(container.image_cleanup), host=container.execution_host)
+                    execute(self.execute_remote, ' '.join(command), host=container.execution_host)
 
-            image_cleanup = Popen(self.int_container.image_cleanup, stdout=PIPE, stderr=PIPE)
+            if settings.remove_unreferenced_containers:
+                command = unref_command + self.int_container.image_cleanup
+                image_cleanup = Popen(command, stdout=PIPE, stderr=PIPE)
+            else:
+                image_cleanup = Popen(self.int_container.image_cleanup, stdout=PIPE, stderr=PIPE)
+
             for line in iter(image_cleanup.stdout.readline, ''):
                 logger.info(line)
             for line in iter(image_cleanup.stderr.readline, ''):

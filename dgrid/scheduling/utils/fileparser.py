@@ -46,7 +46,7 @@ def get_hosts(hostfile):
     with open(hostfile, 'r') as f:
         host_list = f.read().splitlines()
         for host in host_list:
-            hosts.append(host)
+            hosts.append(host.decode('utf-8'))
 
     return hosts
 

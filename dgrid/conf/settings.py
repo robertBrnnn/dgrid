@@ -24,3 +24,18 @@ Image cleanup possibilities:
 # image_cleanup = 0
 image_cleanup = 1
 # image_cleanup = 2
+
+'''
+Remove containers using unreferenced images
+This will allow dangling images to be removed, when containers exist that use them.
+'''
+remove_unreferenced_containers = True
+
+'''
+Image cleanup script references
+
+Note: Scripts are installed in Python's package directory in folder 'dgrid-scripts'.
+      Users can create modified cleanup scripts, place them in the dgrid-scripts directory and reference them here.
+'''
+unused_images_script = "remove_unused.sh"
+unreferenced_containers_script = "remove_unreferenced_containers.sh"

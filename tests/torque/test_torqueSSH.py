@@ -23,7 +23,7 @@ class SSHExecutorTests(unittest.TestCase):
         self.hostname = socket.gethostname()
         self.host_template += socket.gethostname()
 
-    def test_running_remote_containers(self):
+    def test_01_running_remote_containers(self):
         # Spin up a couple of containers
         os.system('cd ' + self.cwd + '/TestingUtilities/ && docker build --build-arg HOM=$HOME -t dgrid:test .')
 
@@ -46,7 +46,7 @@ class SSHExecutorTests(unittest.TestCase):
         os.system("docker rm -fv $(docker ps -a | grep 'slave' | awk '{print $1}')")
         assert containers[0].name not in result
 
-    def test_running_local_container(self):
+    def test_02_running_local_container(self):
         hosts = [self.hostname + ':9000', self.hostname + ':9001', self.hostname + ':9002', self.hostname]
         containers = fileparser.get_containers(self.cwd + '/tests/torque/Dockerdef3.json')
 
@@ -60,7 +60,7 @@ class SSHExecutorTests(unittest.TestCase):
         os.system("docker rm -fv $(docker ps -a | grep 'head' | awk '{print $1}')")
         assert executor.local_pid > 0 and executor.int_container.name in result
 
-    def test_removing_containers(self):
+    def test_03_removing_containers(self):
         for i in range(3):
             os.system('docker run -d -v /var/run/docker.sock:/run/docker.sock'
                       ' -p 900' + str(i) + ':22 dgrid:test')
@@ -83,3 +83,6 @@ class SSHExecutorTests(unittest.TestCase):
         for x in range(len(executor.containers)):
             assert executor.containers[x].name not in \
                    os.popen("docker ps -a | grep " + executor.containers[x].name + " | awk '{print $1}'").read()
+
+    def tearDown(self):
+        os.system("docker rm -fv $(docker ps -a | grep 'dgrid:test' | awk '{print $1}')")
