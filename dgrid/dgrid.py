@@ -40,11 +40,13 @@ def main():
 
     required.add_argument('--hostfile',
                           dest='hf',
-                          help="Hostfile to use for execution")
+                          help="Hostfile to use for execution",
+                          required=True)
 
     required.add_argument('--dockdef',
                           dest='df',
-                          help="Docker json definition file")
+                          help="Docker json definition file",
+                          required=True)
 
     # Optional CLI arguments
     optional = parser.add_argument_group("Optional arguments")
@@ -55,9 +57,9 @@ def main():
 
     optional.add_argument('-v',
                           '--version',
-                          dest='version',
-                          help="Print version of DGrid",
-                          action='store_true')
+                          action='version',
+                          help="Display program's version number and exit",
+                          version=__version__)
 
     # Optional debug parameter, for verbose output during execution
     optional.add_argument('--enable-debug',
@@ -65,15 +67,8 @@ def main():
                           action='store_true',
                           help="Enable debug logging during execution")
     # Set default value of debug to False
-    parser.set_defaults(debug=False, version=False)
+    parser.set_defaults(debug=False)
     args = parser.parse_args()
-
-    if args.version:
-        print("DGrid version " + __version__)
-        sys.exit(0)
-
-    if args.hf is None or args.df is None:
-        sys.exit("One or more required arguments missing. Run 'dgrid -h' to see help message")
 
     # If DEBUG is enabled in settings, or on command line, enable debug logging. Otherwise INFO logging
     if settings.DEBUG or args.debug:
