@@ -148,17 +148,20 @@ class SSHExecutor:
         """
         cpushares = run(' '.join(self.cpu_shares))
         cpus = run(' '.join(self.cpus))
-        # memory = run(' '.join(self.memory))
-        # memory_swappiness = run(' '.join(self.memory_swappiness))
-        # memory_swap_limit = run(' '.join(self.memory_swap_limit))
-        # kernel_memory = run(' '.join(self.kernel_memory_limit))
-
         container.cpu_shares = cpushares
         container.cpu_set = cpus
-        # container.memory = memory + "b"
-        # container.memory_swappiness = memory_swappiness
-        # container.memory_swap = memory_swap_limit + "b"
-        # container.kernel_memory = kernel_memory + "b"
+
+        if settings.enforce_memory_limits:
+            memory = run(' '.join(self.memory))
+            memory_swappiness = run(' '.join(self.memory_swappiness))
+            memory_swap_limit = run(' '.join(self.memory_swap_limit))
+            kernel_memory = run(' '.join(self.kernel_memory_limit))
+
+            container.memory = memory + "b"
+            container.memory_swappiness = memory_swappiness
+            container.memory_swap = memory_swap_limit + "b"
+            container.kernel_memory = kernel_memory + "b"
+
         container.name += ''.join([random.choice(string.ascii_letters + string.digits) for n in range(20)])
 
         run(" ".join(container.run()))
@@ -206,17 +209,19 @@ class SSHExecutor:
         """
         cpushares = Popen(self.cpu_shares, stdout=PIPE)
         cpus = Popen(self.cpus, stdout=PIPE)
-        memory = Popen(self.memory, stdout=PIPE)
-        memory_swappiness = Popen(self.memory_swappiness, stdout=PIPE)
-        memory_swap_limit = Popen(self.memory_swap_limit, stdout=PIPE)
-        kernel_memory = Popen(self.kernel_memory_limit, stdout=PIPE)
-
         self.int_container.cpu_shares = cpushares.stdout.read().replace("\n", "")
         self.int_container.cpu_set = cpus.stdout.read().replace("\n", "")
-        #self.int_container.memory = memory.stdout.read().replace("\n", "") + "b"
-        #self.int_container.memory_swappiness = memory_swappiness.stdout.read().replace("\n", "")
-        #self.int_container.memory_swap = memory_swap_limit.stdout.read().replace("\n", "") + "b"
-        #self.int_container.kernel_memory = kernel_memory.stdout.read().replace("\n", "") + "b"
+
+        if settings.enforce_memory_limits:
+            memory = Popen(self.memory, stdout=PIPE)
+            memory_swappiness = Popen(self.memory_swappiness, stdout=PIPE)
+            memory_swap_limit = Popen(self.memory_swap_limit, stdout=PIPE)
+            kernel_memory = Popen(self.kernel_memory_limit, stdout=PIPE)
+
+            self.int_container.memory = memory.stdout.read().replace("\n", "") + "b"
+            self.int_container.memory_swappiness = memory_swappiness.stdout.read().replace("\n", "")
+            self.int_container.memory_swap = memory_swap_limit.stdout.read().replace("\n", "") + "b"
+            self.int_container.kernel_memory = kernel_memory.stdout.read().replace("\n", "") + "b"
 
     def terminate_clean(self):
         """

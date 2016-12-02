@@ -21,3 +21,5 @@ Image cleanup possibilities:
 # image_cleanup = 0
 # image_cleanup = 1
 image_cleanup = 2
+
+enforce_memory_limits = True

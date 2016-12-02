@@ -1,8 +1,12 @@
 # Import any signal needed
 from signal import SIGTERM
 
+# Enable debug log messages to stdout
 DEBUG = True
 
+'''
+Scheduler configuration
+'''
 # Scheduler type & version
 scheduler = "Torque6"
 
@@ -12,8 +16,13 @@ Execution_Method = 'SSH'
 # Termination signals
 termination_signal = SIGTERM
 
-# Cgroups directory of Torque
+'''
+Linux control group configuration.
+cgroup_dir: the path to the machines cgroup directory
+enforce_memory_limits: on systems where memory limits are enforced in cgroups, apply to spun up containers
+'''
 cgroup_dir = '/sys/fs/cgroup'
+enforce_memory_limits = False
 
 '''
 Image cleanup possibilities:
