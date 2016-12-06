@@ -91,8 +91,9 @@ class Container(object):
         self.add_argument('name', '--name')
         self.add_argument('work_dir', '--workdir')
         self.add_argument('image')
-        for arg in self.cmd:
-            self.add_param(arg, cmd=True)
+        if hasattr(self, 'cmd'):
+            for arg in self.cmd:
+                self.add_param(arg, cmd=True)
 
         return self.run_command
 
