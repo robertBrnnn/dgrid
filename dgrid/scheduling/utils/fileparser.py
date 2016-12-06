@@ -7,6 +7,7 @@ Utilities for parsing docker definition files and host file
 
 import json
 import logging
+import os
 
 from dgrid.docker.container import Container
 
@@ -31,6 +32,9 @@ def get_containers(dockerdef):
                 containers.append(Container(cont))
         else:
             containers.append(Container(cont))
+
+    if 'hostfile_format' in data:
+        os.environ['DGRID_HOSTFILE_FORMAT'] = data["hostfile_format"]
 
     return containers
 

@@ -15,6 +15,7 @@ from fabric.api import run, env
 from fabric.tasks import execute
 from fabric.network import disconnect_all
 from dgrid.scheduling.utils.Errors import HostValueError, InteractiveContainerNotSpecified, RemoteExecutionError
+from dgrid.scheduling.utils.docker_netorking import add_networking
 
 from dgrid.conf import settings
 
@@ -36,6 +37,7 @@ class SSHExecutor:
 
         self.user = os.popen("id -u $USER").read().replace("\n", "")
         self.job_id = os.environ.get('PBS_JOBID')
+        self.work_dir = os.environ.get("PBS_O_WORKDIR")
 
         cgroups_dir = settings.cgroup_dir
 
@@ -70,6 +72,11 @@ class SSHExecutor:
         except ValueError:
             raise HostValueError('Hostname of execution host not in assigned hosts list')
 
+        # The method add_networking will randomise container names.
+        # If networking has been defined by the user,env variables, volumes mapping required will be added to container
+        self.containers, self.create_net = add_networking(self.containers, self.work_dir)
+        self.network_name = ""
+
         # Get the interactive container, and remove from list
         for container in self.containers:
             if container.interactive == 'True':
@@ -90,14 +97,26 @@ class SSHExecutor:
         After all hosts have been assigned a container, spin up interactive container locally
         :return: NULL
         """
+        if self.create_net:
+            logger.debug("creating docker container network for job")
+            self.network_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(10)])
+            self.docker_network(create=True, remove=False)
+
         logger.debug('Assigning containers to hosts')
         for x in range(len(self.containers)):
-            if isinstance(self.hosts, list):
-                host = self.hosts[x]
-            else:
-                host = self.hosts
+            try:
+                if isinstance(self.hosts, list):
+                    host = self.hosts[x]
+                else:
+                    host = self.hosts
+            except IndexError:
+                logger.critical("Not enough hosts assigned to job. One host per container is required")
+                self.terminate_clean()
+                self.remove_images()
+                sys.exit("Terminating")
 
             container = self.containers[x]
+            container.network = self.network_name if self.create_net else None
 
             try:
                 logger.debug("Running remote containers")
@@ -134,10 +153,29 @@ class SSHExecutor:
         try:
             self.remove_images()
         except RemoteExecutionError:
-            logger("Image removal failed")
+            logger.error("Image removal failed")
             sys.exit("Aborting")
 
         sys.exit(0)
+
+    def docker_network(self, create=False, remove=False):
+        """
+        Creates or removes a docker network
+        :param create: boolean parameter, defines whether docker network should be created
+        :param remove: boolean parameter, defines whether docker network should be destroyed
+        :return:
+        """
+        command = []
+        if create:
+            command = ['docker', 'network', 'create', '--driver=overlay', self.network_name]
+        if remove:
+            command = ['docker', 'network', 'rm', self.network_name]
+
+        proc = Popen(command, stdout=PIPE, stderr=PIPE)
+        for line in iter(proc.stdout.readline, ''):
+            logger.info(line)
+        for line in iter(proc.stderr.readline, ''):
+            logger.error(line)
 
     def run_container(self, container):
         """
@@ -162,8 +200,6 @@ class SSHExecutor:
             container.memory_swap = memory_swap_limit + "b"
             container.kernel_memory = kernel_memory + "b"
 
-        container.name += ''.join([random.choice(string.ascii_letters + string.digits) for n in range(20)])
-
         run(" ".join(container.run()))
         container_id = run("docker inspect --format '{{ .State.Pid }}' %s" % container.name)
         run("pbs_track -j %s -a '%s'" % (self.job_id, container_id))
@@ -176,9 +212,6 @@ class SSHExecutor:
         # Setup CGroup constraints set by torque
         self.setup_constraints()
 
-        # Randomise the containers name
-        self.int_container.name += ''.join([random.choice(string.ascii_letters + string.digits) for n in range(20)])
-
         # Pull the image first
         # Image pulling during docker run sends to stdout
         result = Popen(["docker", "pull", self.int_container.image], stdout=PIPE, stderr=PIPE)
@@ -187,7 +220,12 @@ class SSHExecutor:
         for line in iter(result.stderr.readline, ''):
             logger.error(line)
 
+        # Add created docker network to container
+        if self.create_net:
+            self.int_container.network = self.network_name
+
         # Run the interactive container
+        logger.debug(" ".join(self.int_container.run()))
         proc = Popen(self.int_container.run(), stdout=PIPE, stderr=PIPE)
         self.local_run = True
         self.local_pid = proc.pid
@@ -251,49 +289,66 @@ class SSHExecutor:
                 command = ' '.join(container.terminate()) + " && " + ' '.join(container.cleanup())
                 execute(self.execute_remote, command, host=container.execution_host)
 
+        # Remove docker network if one was created
+        if self.create_net:
+            host_file_format = os.environ.get("DGRID_HOSTFILE_FORMAT")
+            logger.debug("Removing docker network " + self.network_name)
+            self.docker_network(create=False, remove=True)
+            if host_file_format == 'json':
+                os.remove(self.work_dir + "/hostfile.json")
+            if host_file_format == 'list':
+                os.remove(self.work_dir + "/hostfile")
+
     def remove_images(self):
-        unref_command = ['sh', self.script_dir + settings.unreferenced_containers_script, ' && ']
+        unref_command = ['sh', self.script_dir + settings.unreferenced_containers_script]
 
         if settings.image_cleanup == 1:
             logger.debug("Removing all unused images")
-
             base_command = ['sh', self.script_dir + settings.unused_images_script]
+            commands = []
+
             if settings.remove_unreferenced_containers:
-                command = unref_command + base_command
+                commands.append(unref_command)
+                commands.append(base_command)
             else:
-                command = base_command
+                commands.append(base_command)
+
+            for command in commands:
+                image_cleanup = Popen(command, stdout=PIPE, stderr=PIPE)
+                for line in iter(image_cleanup.stdout.readline, ''):
+                    logger.info(line)
+                for line in iter(image_cleanup.stderr.readline, ''):
+                    logger.error(line)
 
             for container in self.containers:
-                if container.execution_host is not None:
-                    execute(self.execute_remote, " ".join(command), host=container.execution_host)
-
-            image_cleanup = Popen(command, stdout=PIPE, stderr=PIPE)
-
-            for line in iter(image_cleanup.stdout.readline, ''):
-                logger.info(line)
-            for line in iter(image_cleanup.stderr.readline, ''):
-                logger.error(line)
+                if container.execution_host is not None and settings.remove_unreferenced_containers:
+                    execute(self.execute_remote, " ".join(unref_command), host=container.execution_host)
+                    execute(self.execute_remote, " ".join(base_command), host=container.execution_host)
+                if container.execution_host is not None and not settings.remove_unreferenced_containers:
+                    execute(self.execute_remote, " ".join(base_command), host=container.execution_host)
 
         if settings.image_cleanup == 2:
             logger.debug("Removing images associated with job")
             for container in self.containers:
-                if settings.remove_unreferenced_containers:
-                    command = unref_command + container.image_cleanup
-                else:
-                    command = container.image_cleanup
-                if container.execution_host is not None:
-                    execute(self.execute_remote, ' '.join(command), host=container.execution_host)
+                if container.execution_host is not None and settings.remove_unreferenced_containers:
+                    execute(self.execute_remote, ' '.join(unref_command), host=container.execution_host)
+                    execute(self.execute_remote, ' '.join(container.image_cleanup), host=container.execution_host)
+                if container.execution_host is not None and not settings.remove_unreferenced_containers:
+                    execute(self.execute_remote, ' '.join(container.image_cleanup), host=container.execution_host)
 
+            commands = []
             if settings.remove_unreferenced_containers:
-                command = unref_command + self.int_container.image_cleanup
-                image_cleanup = Popen(command, stdout=PIPE, stderr=PIPE)
+                commands.append(unref_command)
+                commands.append(self.int_container.image_cleanup)
             else:
-                image_cleanup = Popen(self.int_container.image_cleanup, stdout=PIPE, stderr=PIPE)
+                commands.append(self.int_container.image_cleanup)
 
-            for line in iter(image_cleanup.stdout.readline, ''):
-                logger.info(line)
-            for line in iter(image_cleanup.stderr.readline, ''):
-                logger.error(line)
+            for command in commands:
+                image_cleanup = Popen(command, stdout=PIPE, stderr=PIPE)
+                for line in iter(image_cleanup.stdout.readline, ''):
+                    logger.info(line)
+                for line in iter(image_cleanup.stderr.readline, ''):
+                    logger.error(line)
 
     def execute_remote(self, command):
         """

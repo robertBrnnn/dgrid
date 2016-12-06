@@ -37,7 +37,12 @@ class Container(object):
         if 'work_dir' in json:
             self.work_dir = json['work_dir']
 
+        self.host_to_list = json['host_to_list'] if 'host_to_list' in json else None
+        self.host_list_location = json['host_list_location'] if 'host_list_location' in json else None
+        self.links = json['links'] if 'links' in json else None
+
         self.user = None
+        self.network = None
         self.memory = None
         self.cpu_shares = None
         self.cpu_set = None
@@ -72,6 +77,7 @@ class Container(object):
         self.add_argument('memory_swappiness', '--memory-swappiness')
         self.add_argument('kernel_memory', '--kernel-memory')
         self.add_argument('user', '--user')
+        self.add_argument('network', '--network')
 
         if hasattr(self, 'volumes'):
             for volume in self.volumes:
