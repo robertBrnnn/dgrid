@@ -23,7 +23,7 @@ def add_networking(containers, write_directory):
     container_mapping = dict()
     for container in containers:
         original_name = container.name
-        container.name += ''.join([random.choice(string.ascii_letters + string.digits) for n in range(20)])
+        container.name += ''.join([random.choice(string.ascii_lowercase + string.digits) for n in range(20)])
         container_mapping[original_name] = container.name
 
     for container in containers:
