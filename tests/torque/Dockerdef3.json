@@ -4,7 +4,7 @@
       "image": "ubuntu:14.04",
       "name": "head",
       "checkpointing": "True",
-      "run_cmd": "hostname"
+      "run_cmd": ["hostname"]
     },
     {
   	  "interactive": "False",

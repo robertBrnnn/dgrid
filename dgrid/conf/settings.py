@@ -2,7 +2,7 @@
 from signal import SIGTERM
 
 # Enable debug log messages to stdout
-DEBUG = True
+DEBUG = False
 
 '''
 Scheduler configuration
@@ -15,6 +15,9 @@ Execution_Method = 'SSH'
 
 # Termination signals
 termination_signal = SIGTERM
+
+# pbs_track binary
+pbs_track = "/usr/local/bin/pbs_track"
 
 '''
 Linux control group configuration.
@@ -30,8 +33,8 @@ Image cleanup possibilities:
 1) At the end of execution remove all unused images on nodes assigned to the job.
 2) Remove only images associated with the job.
 '''
-# image_cleanup = 0
-image_cleanup = 1
+image_cleanup = 0
+# image_cleanup = 1
 # image_cleanup = 2
 
 '''

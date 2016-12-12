@@ -49,7 +49,7 @@ class Container(object):
         self.memory_swap = None
         self.memory_swappiness = None
         self.kernel_memory = None
-        self.checkpointing = json['checkpointing']
+        self.checkpointing = json['checkpointing'] if 'checkpointing' in json else None
         self.run_command = None
         self.chk_command = None
         self.rst_command = None

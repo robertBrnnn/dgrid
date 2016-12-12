@@ -14,7 +14,6 @@ RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so
 
 ENV NOTVISIBLE "in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
-RUN printf '#!/bin/bash\nsleep 5' >> /usr/bin/pbs_track && chmod a+x /usr/bin/pbs_track
 
 RUN mkdir -p $HOM/dgrid/cgroup/cpu/torque/8/ $HOM/dgrid/cgroup/cpuset/torque/8/ $HOM/dgrid/cgroup/memory/torque/8/ && \
     echo '1024' >> $HOM/dgrid/cgroup/cpu/torque/8/cpu.shares && \
@@ -23,6 +22,9 @@ RUN mkdir -p $HOM/dgrid/cgroup/cpu/torque/8/ $HOM/dgrid/cgroup/cpuset/torque/8/ 
     echo '30' >> $HOM/dgrid/cgroup/memory/torque/8/memory.swappiness && \
     echo '524288000' >> $HOM/dgrid/cgroup/memory/torque/8/memory.memsw.limit_in_bytes && \
     echo '524288000' >> $HOM/dgrid/cgroup/memory/torque/8/memory.kmem.limit_in_bytes
+
+RUN printf '#!/bin/bash\nsleep 5' >> $HOM/dgrid/pbs_track && chmod a+x $HOM/dgrid/pbs_track && \
+    export PATH=$HOM/dgrid:$PATH
 
 RUN apt-get install -y curl && \
     curl -L https://get.docker.com/builds/Linux/x86_64/docker-1.10.3 > /usr/bin/docker && \

@@ -10,11 +10,13 @@ import random
 import socket
 import string
 import re
-from subprocess import Popen, PIPE
+from retry import retry
+from subprocess import Popen, PIPE, CalledProcessError
 from fabric.api import run, env
 from fabric.tasks import execute
 from fabric.network import disconnect_all
-from dgrid.scheduling.utils.Errors import HostValueError, InteractiveContainerNotSpecified, RemoteExecutionError
+from dgrid.scheduling.utils.Errors import HostValueError, InteractiveContainerNotSpecified, RemoteExecutionError, \
+    ProcessIdRetrievalFailure
 from dgrid.scheduling.utils.docker_netorking import add_networking
 
 from dgrid.conf import settings
@@ -139,7 +141,8 @@ class SSHExecutor:
             Need to catch any exception thrown during local execution, so using general exception class.
             For any error, we assume termination, as it is likely an issue with submitters container.
             '''
-            logger.critical("Interactive container execution error: " + ex.message)
+            exc = type(ex).__name__
+            logger.critical("Interactive container execution error: " + exc + " " + ex.message)
             self.terminate_clean()
             self.remove_images()
             sys.exit("Terminating")
@@ -172,10 +175,7 @@ class SSHExecutor:
             command = ['docker', 'network', 'rm', self.network_name]
 
         proc = Popen(command, stdout=PIPE, stderr=PIPE)
-        for line in iter(proc.stdout.readline, ''):
-            logger.info(line)
-        for line in iter(proc.stderr.readline, ''):
-            logger.error(line)
+        self.print_output(proc)
 
     def run_container(self, container):
         """
@@ -202,7 +202,7 @@ class SSHExecutor:
 
         run(" ".join(container.run()))
         container_id = run("docker inspect --format '{{ .State.Pid }}' %s" % container.name)
-        run("pbs_track -j %s -a '%s'" % (self.job_id, container_id))
+        run("%s -j %s -a '%s'" % (settings.pbs_track, self.job_id, container_id))
 
     def run_int_container(self):
         """
@@ -215,14 +215,14 @@ class SSHExecutor:
         # Pull the image first
         # Image pulling during docker run sends to stdout
         result = Popen(["docker", "pull", self.int_container.image], stdout=PIPE, stderr=PIPE)
-        for line in iter(result.stdout.readline, ''):
-            logger.info(line)
-        for line in iter(result.stderr.readline, ''):
-            logger.error(line)
+        self.print_output(result)
 
         # Add created docker network to container
         if self.create_net:
             self.int_container.network = self.network_name
+
+        # Add container UID
+        self.int_container.user = self.user
 
         # Run the interactive container
         logger.debug(" ".join(self.int_container.run()))
@@ -230,12 +230,9 @@ class SSHExecutor:
         self.local_run = True
         self.local_pid = proc.pid
         logger.debug("Local process id: " + str(self.local_pid))
-
-        for line in iter(proc.stdout.readline, ''):
-            logger.info(line)
-
-        for line in iter(proc.stderr.readline, ''):
-            logger.error(line)
+        self.track_int_container()
+        logger.info("-- Interactive Container Output --")
+        self.print_output(proc)
 
         self.local_run = False
 
@@ -261,6 +258,33 @@ class SSHExecutor:
             self.int_container.memory_swap = memory_swap_limit.stdout.read().replace("\n", "") + "b"
             self.int_container.kernel_memory = kernel_memory.stdout.read().replace("\n", "") + "b"
 
+    @retry((CalledProcessError, OSError, ProcessIdRetrievalFailure), tries=3, delay=2)
+    def track_int_container(self):
+        """
+        Calls pbs_track to monitor interactive container process
+        Retries if pid retrieval fails or pbs_track fails
+        Retries = 3
+        Delay between retries = 2 seconds
+        :return:
+        """
+
+        pid = os.popen("docker inspect --format '{{ .State.Pid }}' %s" % self.int_container.name)\
+            .read().replace("\n", "")
+
+        # Raise error if PID retrieval failed
+        if pid == '':
+            raise ProcessIdRetrievalFailure("Can't retrieve process id for interactive container")
+
+        # Log the container process id
+        logger.debug("-- Container PID retrieval --")
+        logger.debug("container pid: " + pid)
+
+        # Call pbs_track to monitor interactive container
+        logger.debug("running " + ' '.join([settings.pbs_track, "-j", self.job_id, "-a", "'%s'" % str(pid)]))
+        pbst = Popen([settings.pbs_track, "-j", self.job_id, "-a", str(pid)], stdout=PIPE, stderr=PIPE)
+        logger.debug("-- PBS_TRACK output --")
+        self.print_output(pbst)
+
     def terminate_clean(self):
         """
         Iterates through all remote containers and runs 'docker stop <container>' on each remote.
@@ -269,18 +293,12 @@ class SSHExecutor:
         # Check if local interactive container is still running
         if self.local_run is True:
             terminate = Popen(self.int_container.terminate(), stdout=PIPE, stderr=PIPE)
-            for line in iter(terminate.stdout.readline, ''):
-                logger.info(line)
-            for line in iter(terminate.stderr.readline, ''):
-                logger.error(line)
+            self.print_output(terminate)
 
         # Remove the interactive container
         logger.debug("removing local interactive container")
         container_cleanup = Popen(self.int_container.cleanup(), stdout=PIPE, stderr=PIPE)
-        for line in iter(container_cleanup.stdout.readline, ''):
-            logger.info(line)
-        for line in iter(container_cleanup.stderr.readline, ''):
-            logger.error(line)
+        self.print_output(container_cleanup)
 
         logger.debug("stopping and removing remote containers")
         for container in self.containers:
@@ -315,10 +333,7 @@ class SSHExecutor:
 
             for command in commands:
                 image_cleanup = Popen(command, stdout=PIPE, stderr=PIPE)
-                for line in iter(image_cleanup.stdout.readline, ''):
-                    logger.info(line)
-                for line in iter(image_cleanup.stderr.readline, ''):
-                    logger.error(line)
+                self.print_output(image_cleanup)
 
             for container in self.containers:
                 if container.execution_host is not None and settings.remove_unreferenced_containers:
@@ -345,10 +360,13 @@ class SSHExecutor:
 
             for command in commands:
                 image_cleanup = Popen(command, stdout=PIPE, stderr=PIPE)
-                for line in iter(image_cleanup.stdout.readline, ''):
-                    logger.info(line)
-                for line in iter(image_cleanup.stderr.readline, ''):
-                    logger.error(line)
+                self.print_output(image_cleanup)
+
+    def print_output(self, process):
+        for line in iter(process.stdout.readline, ''):
+            logger.info(line)
+        for line in iter(process.stderr.readline, ''):
+            logger.error(line)
 
     def execute_remote(self, command):
         """

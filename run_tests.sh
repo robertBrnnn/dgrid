@@ -9,6 +9,7 @@
 echo 'Modifying settings files'
 cp TestingUtilities/settings.py TestingUtilities/settings.py.bak
 printf "\ncgroup_dir = \"$HOME/dgrid/cgroup\"" >> TestingUtilities/settings.py
+printf "\npbs_track = \"$HOME/dgrid/pbs_track\"" >> TestingUtilities/settings.py
 
 if [ ! -d "$HOME/dgrid" ]; then
   echo 'Creating dummy cgroups directory'
@@ -19,6 +20,9 @@ if [ ! -d "$HOME/dgrid" ]; then
     echo '30' >> $HOME/dgrid/cgroup/memory/torque/8/memory.swappiness && \
     echo '524288000' >> $HOME/dgrid/cgroup/memory/torque/8/memory.memsw.limit_in_bytes && \
     echo '524288000' >> $HOME/dgrid/cgroup/memory/torque/8/memory.kmem.limit_in_bytes;
+
+  printf "#!/bin/bash\nsleep 5" >> $HOME/dgrid/pbs_track
+  chmod +x $HOME/dgrid/pbs_track
 fi
 
 mv dgrid/conf/settings.py dgrid/conf/settings.py.bak

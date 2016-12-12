@@ -16,3 +16,8 @@ class InteractiveContainerNotSpecified(Exception):
 class RemoteExecutionError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
+
+
+class ProcessIdRetrievalFailure(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
