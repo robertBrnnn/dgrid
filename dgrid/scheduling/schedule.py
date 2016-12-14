@@ -7,7 +7,9 @@ Instantiates the required scheduler only, and returns it to calling script
 """
 
 import logging
+import sys
 
+from abc import ABCMeta, abstractmethod
 from dgrid.conf import settings
 from dgrid.scheduling.utils import fileparser
 
@@ -15,12 +17,45 @@ logger = logging.getLogger(__name__)
 
 
 class Scheduler(object):
+    # abstract class reference docs.python.org/2/library/abc.html
+    __metaclass__ = ABCMeta
 
     def __init__(self, containers, hosts):
         self.containers = containers
         self.hosts = hosts
 
-    @staticmethod
+    @abstractmethod
+    def run_job(self):
+        """
+        Called to run a given job description
+        :return:
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def checkpoint(self):
+        """
+        Called to checkpoint containers of a given job
+        :return:
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def restore(self):
+        """
+        Called to restore containers of a given job
+        :return:
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def terminate(self):
+        """
+        Called to terminate all container of a given job
+        :return:
+        """
+        raise NotImplementedError
+
     def get_scheduler(hosts, containers):
         """
         Instantiates the relevant scheduler, with container list and host list
@@ -31,15 +66,22 @@ class Scheduler(object):
         # Import only the class of the scheduler we need -> no point in loading every scheduler
         scheduler_class = settings.scheduler
 
-        logger.debug('Loading scheduler class %s', scheduler_class)
-        module = __import__('dgrid.scheduling.schedulers.' + scheduler_class + '.'
-                            + scheduler_class, fromlist=scheduler_class)
+        try:
+            # module importing from stackoverflow.com/a/547867/4345813
+            logger.debug('Loading scheduler class %s', scheduler_class)
+            module = __import__('dgrid.scheduling.schedulers.' + scheduler_class + '.'
+                                + scheduler_class, fromlist=scheduler_class)
 
-        klass = getattr(module, scheduler_class)
-        sched = klass(containers, hosts)
+            klass = getattr(module, scheduler_class)
+            sched = klass(containers, hosts)
 
-        # Return the scheduler
-        return sched
+            # Return the scheduler
+            return sched
+        except ImportError:
+            logger.error("No Scheduler named %s. Check configuration files." % scheduler_class)
+            sys.exit(1)
+
+    get_scheduler = staticmethod(get_scheduler)
 
 
 def load_job(hostfile, dockerdef):
