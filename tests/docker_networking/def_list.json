@@ -1,0 +1,24 @@
+{"hostfile_format": "list",
+"containers":[{
+          "interactive": "True",
+      "image": "python:2",
+      "name": "head",
+      "volumes": [
+        "/home/u170606/dgrid-tests/nethl/net.py:/net.py"],
+      "checkpointing": "True",
+      "run_cmd": ["python", "/net.py"],
+      "host_list_location": "/"
+    },
+    {
+      "image": "ubuntu:14.04",
+      "name": "tail",
+      "interactive": "False",
+      "volumes": [
+        "/home/u170606/dgrid-tests/test1/test.sh:/test.sh"],
+      "checkpointing": "False",
+      "run_cmd": ["sh", "test.sh"],
+      "scale": 3,
+      "host_to_list": "True"
+    }
+]
+}

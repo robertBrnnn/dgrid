@@ -1,0 +1,24 @@
+{ "containers":[{
+          "interactive": "True",
+      "image": "ubuntu:14.04",
+      "name": "head",
+      "volumes": [
+        "/home/u170606/dgrid-tests/networking/net.sh:/net.sh"],
+      "environment_variables": [
+        "variable=value"
+      ],
+      "checkpointing": "True",
+      "run_cmd": ["sh", "net.sh"],
+      "links": ["tail:CONT"]
+    },
+    {
+      "image": "ubuntu:14.04",
+      "name": "tail",
+      "interactive": "False",
+      "volumes": [
+        "/home/u170606/dgrid-tests/test1/test.sh:/test.sh"],
+      "checkpointing": "False",
+      "run_cmd": ["sh", "test.sh"]
+    }
+]
+}
