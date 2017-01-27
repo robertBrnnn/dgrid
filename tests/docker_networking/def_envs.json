@@ -3,7 +3,7 @@
       "image": "ubuntu:14.04",
       "name": "head",
       "volumes": [
-        "/home/u170606/dgrid-tests/networking/net.sh:/net.sh"],
+        "/a/test/net.sh:/net.sh"],
       "environment_variables": [
         "variable=value"
       ],
@@ -16,7 +16,7 @@
       "name": "tail",
       "interactive": "False",
       "volumes": [
-        "/home/u170606/dgrid-tests/test1/test.sh:/test.sh"],
+        "/a/test.sh:/test.sh"],
       "checkpointing": "False",
       "run_cmd": ["sh", "test.sh"]
     }

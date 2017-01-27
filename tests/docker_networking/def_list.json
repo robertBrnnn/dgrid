@@ -4,7 +4,7 @@
       "image": "python:2",
       "name": "head",
       "volumes": [
-        "/home/u170606/dgrid-tests/nethl/net.py:/net.py"],
+        "/a/test/mount.py:/net.py"],
       "checkpointing": "True",
       "run_cmd": ["python", "/net.py"],
       "host_list_location": "/"
@@ -14,7 +14,7 @@
       "name": "tail",
       "interactive": "False",
       "volumes": [
-        "/home/u170606/dgrid-tests/test1/test.sh:/test.sh"],
+        "/a/test/test.sh:/test.sh"],
       "checkpointing": "False",
       "run_cmd": ["sh", "test.sh"],
       "scale": 3,
