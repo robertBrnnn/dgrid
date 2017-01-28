@@ -82,6 +82,57 @@ class TestDockerNetworking(unittest.TestCase):
         # Check all results are true, and same number of entries in expected as result
         assert all(item is True for item in results) and len(expected) == len(results)
 
+    def test_creates_env(self):
+        jsonf = self.docker_def_envs
+        containers = fileparser.get_containers(jsonf)
+
+        for container in containers:
+            # remove all environment variables
+            if container.name == 'head':
+                container.environment_vars = []
+
+        conts, var = add_networking(containers, self.write_dir)
+        for container in containers:
+            # get slave containers full name
+            if container.name.startswith('tail'):
+                slave = container.name
+
+        for container in conts:
+            if container.name.startswith('head'):
+                # check environment variables
+                result = self.check_envs(container.environment_vars, slave)
+                assert len(container.environment_vars) == 1 and result
+
+    def test_creates_volume(self):
+        results = []
+        # Check volumes is created for json first
+        containers = fileparser.get_containers(self.docker_def_json)
+        for container in containers:
+            # Remove existing volume mappings from head container
+            container.volumes = [] if container.name == 'head' else container.volumes
+
+        conts, var = add_networking(containers, self.write_dir)
+        for container in conts:
+            if container.name.startswith('head'):
+                # Check volumes created
+                created = self.run_check(container.volumes, isjson=True)
+                results.append(True) if created and len(container.volumes) is 1 else False
+
+        # Check volume is created for list
+        containers = fileparser.get_containers(self.docker_def_list)
+        for container in containers:
+            # Remove existing volumes mappings from head container
+            container.volumes = [] if container.name == 'head' else container.volumes
+
+        conts, var = add_networking(containers, self.write_dir)
+        for container in conts:
+            if container.name.startswith('head'):
+                # Check volumes created
+                created = self.run_check(container.volumes, islist=True)
+                results.append(True) if created and len(container.volumes) is 1 else False
+
+        assert all(item is True for item in results) and len(results) is 2
+
     def run_check(self, volumes, islist=False, isjson=False):
         result = False
         for volume in volumes:
@@ -92,6 +143,8 @@ class TestDockerNetworking(unittest.TestCase):
                 result = True if self.write_dir + 'hostfile' in parts[0] else False
             if isjson:
                 result = True if self.write_dir + 'hostfile.json' in parts[0] else False
+            if result:
+                return result
         return result
 
     def check_envs(self, envs, slave):
@@ -99,6 +152,8 @@ class TestDockerNetworking(unittest.TestCase):
         for env in envs:
             parts = env.split('=')
             result = True if parts[0] == 'CONT' and parts[1] == slave else False
+            if result:
+                return result
         return result
 
     def tearDown(self):

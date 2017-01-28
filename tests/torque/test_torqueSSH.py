@@ -86,8 +86,6 @@ class SSHExecutorTests(unittest.TestCase):
                            os.popen("docker ps -a | grep " +
                                     executor.containers[x].name +
                                     " | awk '{print $1}'").read())
-            #assert executor.containers[x].name not in \
-            #       os.popen("docker ps -a | grep " + executor.containers[x].name + " | awk '{print $1}'").read()
         assert all(item is True for item in results)
 
     def tearDown(self):
