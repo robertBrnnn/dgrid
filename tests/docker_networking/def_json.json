@@ -1,0 +1,34 @@
+{"hostfile_format": "json",
+"containers":[{
+          "interactive": "True",
+      "image": "python:2",
+      "name": "head",
+      "volumes": [
+        "/a/test/volumes:/mount"],
+      "checkpointing": "True",
+      "run_cmd": ["sh", "command.sh"],
+      "host_list_location": "/"
+    },
+    {
+      "image": "ubuntu:14.04",
+      "name": "green",
+      "interactive": "False",
+      "volumes": [
+        "/a/test.sh:/test.sh"],
+      "checkpointing": "False",
+      "run_cmd": ["sh", "test.sh"],
+      "scale": 2,
+      "host_to_list": ["tag=green"]
+    },
+    {
+      "image": "ubuntu:14.04",
+      "name": "red",
+      "interactive": "False",
+      "volumes": [
+        "/a/test.sh:/test.sh"],
+      "checkpointing": "False",
+      "run_cmd": ["sh", "test.sh"],
+      "host_to_list": ["tag=red"]
+    }
+]
+}

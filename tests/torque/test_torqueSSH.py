@@ -80,9 +80,13 @@ class SSHExecutorTests(unittest.TestCase):
 
         executor.terminate_clean()
 
+        results = []
         for x in range(len(executor.containers)):
-            assert executor.containers[x].name not in \
-                   os.popen("docker ps -a | grep " + executor.containers[x].name + " | awk '{print $1}'").read()
+            results.append(executor.containers[x].name not in
+                           os.popen("docker ps -a | grep " +
+                                    executor.containers[x].name +
+                                    " | awk '{print $1}'").read())
+        assert all(item is True for item in results)
 
     def tearDown(self):
         os.system("docker rm -fv $(docker ps -a | grep 'dgrid:test' | awk '{print $1}')")

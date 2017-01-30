@@ -1,0 +1,24 @@
+{ "containers":[{
+          "interactive": "True",
+      "image": "ubuntu:14.04",
+      "name": "head",
+      "volumes": [
+        "/a/test/net.sh:/net.sh"],
+      "environment_variables": [
+        "variable=value"
+      ],
+      "checkpointing": "True",
+      "run_cmd": ["sh", "net.sh"],
+      "links": ["tail:CONT"]
+    },
+    {
+      "image": "ubuntu:14.04",
+      "name": "tail",
+      "interactive": "False",
+      "volumes": [
+        "/a/test.sh:/test.sh"],
+      "checkpointing": "False",
+      "run_cmd": ["sh", "test.sh"]
+    }
+]
+}
