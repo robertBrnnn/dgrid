@@ -19,7 +19,7 @@ class VersionCommand(Command):
     description = 'update version'
 
     def initialize_options(self):
-        self.version = None
+        self.version = 'doc_conf'
 
     def finalize_options(self):
         if self.version is None:
@@ -54,10 +54,29 @@ class VersionCommand(Command):
                 f.write("version_string = [" + ", ".join(str(x) for x in version) + "]\n")
             print("__version__ = '" + ".".join(str(x) for x in version) + "." + time.strftime("%d%m%Y") + "'\n")
 
+            
+class GenDocs(Command):
+    user_options = [
+        ('conf=', 'c', 'Doxygen configuration file')
+    ]
+    description = 'Generate class docs'
+    
+    def initialize_options(self):
+        self.conf = None
+        
+    def finalize_options(self):
+        """Post-process options."""
+        if self.conf:
+            assert os.path.exists(self.conf), ('Doxygen config file %s does not exist.' % self.conf)
+
+    def run(self):
+        os.system('doxygen doxygen_configuration')
+
 
 setup(
     cmdclass={
               'uv': VersionCommand,
+              'docs': GenDocs,
              },
     name="DGrid",
     version=__version__,
