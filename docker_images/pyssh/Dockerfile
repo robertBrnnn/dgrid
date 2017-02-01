@@ -1,11 +1,11 @@
 FROM python:2.7
 
-ARG USER
-ARG UID
+ARG USER1
+ARG UID1
 
 RUN apt-get update && apt-get install -y openssh-server
 
-RUN pip install pymongo fabric
+RUN pip install pymongo fabric retry
 
 RUN mkdir /var/run/sshd
 
@@ -15,14 +15,14 @@ RUN printf "\nUsePrivilegeSeparation no" >> /etc/ssh/sshd_config
 
 RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 ENV NOTVISIBLE "in users profile" \
-    HOME=/home/${USER}
+    HOME1=/home/$USER1
 
 RUN echo "export VISIBLE=now" >> /etc/profile
-
-RUN adduser --disabled-password --uid ${UID} --gecos "" ${USER} && \
-    echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-    
-ENV SSHDIR ${HOME}/.ssh/
+   
+RUN useradd -m -d /home/$USER1 -u $UID1 $USER1 && \
+    echo "$USER1:password" | chpasswd && \
+    echo "$USER1 ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers 
+ENV SSHDIR $HOME1/.ssh/
 
 RUN mkdir -p ${SSHDIR}
 
@@ -32,14 +32,13 @@ ADD ssh/id_rsa.mpi.pub ${SSHDIR}/id_rsa.pub
 ADD ssh/id_rsa.mpi.pub ${SSHDIR}/authorized_keys
 
 RUN chmod -R 600 ${SSHDIR}* && \
-    chown -R ${USER}:${USER} ${SSHDIR} && \
-    chown -R ${USER}:${USER} /etc/ssh && \
-    chown -R ${USER}:${USER} /usr/local/lib/python2.7
+    chown -R $USER1:$USER1 ${SSHDIR} && \
+    chown -R $USER1:$USER1 /etc/ssh && \
+    chown -R $USER1:$USER1 /usr/local/lib/python2.7
     
 RUN sed -i 's|Port 22|Port 2222|g' /etc/ssh/sshd_config
-USER ${USER}
+USER $USER1
 RUN chmod 600 ${SSHDIR}/*
-
 EXPOSE 2222
 
 CMD ["/usr/sbin/sshd", "-D"]
