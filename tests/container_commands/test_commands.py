@@ -23,7 +23,13 @@ class CommandTestSuite(unittest.TestCase):
         self.container = Container(data)
 
     def test_checkpoint_command(self):
-        expected_result = "docker checkpoint slave"
+        checkpoint_dir = "/tmp/checkpoint"
+        checkpoint_name = "checkpoint1"
+        self.container.checkpoint_dir = checkpoint_dir
+        self.container.checkpoint_name = checkpoint_name
+        expected_result = "docker checkpoint create --checkpoint-dir=%s %s %s" \
+                          % (checkpoint_dir, self.container.name, checkpoint_name)
+        print(' '.join(self.container.checkpoint()))
         assert ' '.join(self.container.checkpoint()) == expected_result
 
     def test_cleanup_command(self):
@@ -36,7 +42,12 @@ class CommandTestSuite(unittest.TestCase):
         assert ' '.join(self.container.terminate()) == expected_result
 
     def test_restore_command(self):
-        expected_result = "docker restore slave"
+        checkpoint_dir = "/tmp/checkpoint"
+        checkpoint_name = "checkpoint1"
+        self.container.checkpoint_dir = checkpoint_dir
+        self.container.checkpoint_name = checkpoint_name
+        expected_result = "docker start --interactive=True --checkpoint-dir=%s --checkpoint=%s %s" \
+                          % (checkpoint_dir, checkpoint_name, self.container.name)
         assert ' '.join(self.container.restore()) == expected_result
 
     def test_run_command1(self):

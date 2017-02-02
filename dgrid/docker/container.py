@@ -49,7 +49,9 @@ class Container(object):
         self.memory_swap = None
         self.memory_swappiness = None
         self.kernel_memory = None
-        self.checkpointing = json['checkpointing'] if 'checkpointing' in json else None
+        self.checkpointing = json['checkpointing'] if 'checkpointing' in json else False
+        self.checkpoint_dir = None
+        self.checkpoint_name = None
         self.run_command = None
         self.chk_command = None
         self.rst_command = None
@@ -67,17 +69,17 @@ class Container(object):
         self.run_command = ['docker', 'run']
 
         # Add arguments to run command. Structure of docker run command must be adhered to.
-        self.add_argument('interactive', '--interactive')
-        self.add_argument('detach', '--detach')
-        self.add_argument('cgroup_parent', '--cgroup-parent')
-        self.add_argument('cpu_shares', '--cpu-shares')
-        self.add_argument('cpu_set', '--cpuset-cpus')
-        self.add_argument('memory', '--memory')
-        self.add_argument('memory_swap', '--memory-swap')
-        self.add_argument('memory_swappiness', '--memory-swappiness')
-        self.add_argument('kernel_memory', '--kernel-memory')
-        self.add_argument('user', '--user')
-        self.add_argument('network', '--network')
+        self.add_argument(self.run_command, 'interactive', '--interactive')
+        self.add_argument(self.run_command, 'detach', '--detach')
+        self.add_argument(self.run_command, 'cgroup_parent', '--cgroup-parent')
+        self.add_argument(self.run_command, 'cpu_shares', '--cpu-shares')
+        self.add_argument(self.run_command, 'cpu_set', '--cpuset-cpus')
+        self.add_argument(self.run_command, 'memory', '--memory')
+        self.add_argument(self.run_command, 'memory_swap', '--memory-swap')
+        self.add_argument(self.run_command, 'memory_swappiness', '--memory-swappiness')
+        self.add_argument(self.run_command, 'kernel_memory', '--kernel-memory')
+        self.add_argument(self.run_command, 'user', '--user')
+        self.add_argument(self.run_command, 'network', '--network')
 
         if hasattr(self, 'volumes'):
             for volume in self.volumes:
@@ -88,9 +90,10 @@ class Container(object):
             for env_var in self.environment_vars:
                 self.add_param(env_var, env=True)
 
-        self.add_argument('name', '--name')
-        self.add_argument('work_dir', '--workdir')
-        self.add_argument('image')
+        self.add_argument(self.run_command, 'name', '--name')
+        self.add_argument(self.run_command, 'work_dir', '--workdir')
+        self.add_argument(self.run_command, 'image')
+
         if hasattr(self, 'cmd'):
             for arg in self.cmd:
                 self.add_param(arg, cmd=True)
@@ -102,8 +105,10 @@ class Container(object):
         Builds checkpoint command
         :return: Command for Checkpointing container
         """
-        self.chk_command = ['docker', 'checkpoint']
-        self.chk_command.append(self.name)
+        self.chk_command = ['docker', 'checkpoint', 'create']
+        self.add_argument(self.chk_command, 'checkpoint_dir', '--checkpoint-dir')
+        self.add_argument(self.chk_command, 'name')
+        self.add_argument(self.chk_command, 'checkpoint_name')
         return self.chk_command
 
     def restore(self):
@@ -111,8 +116,11 @@ class Container(object):
         Builds docker restore command
         :return: Command for restoring container
         """
-        self.rst_command = ['docker', 'restore']
-        self.rst_command.append(self.name)
+        self.rst_command = ['docker', 'start']
+        self.add_argument(self.rst_command, 'interactive', '--interactive')
+        self.add_argument(self.rst_command, 'checkpoint_dir', '--checkpoint-dir')
+        self.add_argument(self.rst_command, 'checkpoint_name', '--checkpoint')
+        self.add_argument(self.rst_command, 'name')
         return self.rst_command
 
     def cleanup(self):
@@ -133,19 +141,20 @@ class Container(object):
         self.term_command.append(self.name)
         return self.term_command
 
-    def add_argument(self, name, suffix=None):
+    def add_argument(self, command, name, suffix=None):
         """
         Adds arguments to the run command
+        :param command: Command to which args are to be appended
         :param name: Name of the parameter containing value to append to command
         :param suffix: Suffix to use for command parameter when required
         :return: Null
         """
         if suffix is None:
             if hasattr(self, name) and getattr(self, name) is not None:
-                self.run_command.append(getattr(self, name))
+                command.append(getattr(self, name))
         else:
             if hasattr(self, name) and getattr(self, name) is not None:
-                self.run_command.append(suffix + "=" + getattr(self, name))
+                command.append(suffix + "=" + getattr(self, name))
 
     def add_param(self, param, vol=False, env=False, cmd=False):
         """
