@@ -10,6 +10,8 @@ import random
 import socket
 import string
 import re
+import pickle
+import shutil
 from retry import retry
 from subprocess import Popen, PIPE, CalledProcessError
 from fabric.api import run, env
@@ -64,6 +66,10 @@ class SSHExecutor:
         context = os.path.realpath(__file__)
         path = re.sub('dgrid/scheduling/schedulers/Torque6/SSHExecutor\.py.*', "", context)
         self.script_dir = path + "/dgrid-scripts/"
+
+        # where to store checkpoint information
+        self.checkpoint_dir = self.work_dir + '/.checkpoint/'
+
         logger.debug("script directory is: " + self.script_dir)
 
         # Strip out current host from list
@@ -99,20 +105,24 @@ class SSHExecutor:
         After all hosts have been assigned a container, spin up interactive container locally
         :return: NULL
         """
-        if self.create_net:
-            logger.debug("creating docker container network for job")
-            self.network_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(10)])
-            self.docker_network(create=True, remove=False)
+        if os.path.isfile(self.checkpoint_dir + '/job_info.p'):
+            self.restore()
+        else:
+            if self.create_net:
+                logger.debug("creating docker container network for job")
+                self.network_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(10)])
+                self.docker_network(create=True, remove=False)
 
-        self.assign_execute()
-        self.job_execution()
-        self.job_termination()
+            self.assign_execute()
+            self.job_execution()
+            self.job_termination()
 
-    def assign_execute(self):
+    def assign_execute(self, restore=False):
         """
         Assigns nodes to containers set to be run on remote machines.
         In the case of checkpoint restoration,
         previous execution host is overwritten with new ones assigned to the job
+        :param restore: whether or not this is a restoration from a checkpoint
         :return:
         """
         logger.info('-- Running remote containers --')
@@ -134,21 +144,22 @@ class SSHExecutor:
                 execute(self.run_container, container, host=host)
             except RemoteExecutionError as rex:
                 logger.critical("Remote execution of containers failed: " + rex.message)
-                self.terminate_clean()
+                self.terminate_clean(restore)
                 self.remove_images()
                 sys.exit("Terminating")
             finally:
                 disconnect_all()
 
-    def job_execution(self):
+    def job_execution(self, restore=False):
         """
         Runs the main part of job execution.
         If the interactive container has a checkpoint, it'll be restored to the previous state to continues execution
         If checkpoints did occur, and job finishes normally, the checkpoint data directory will be removed
+        :param restore: Whether or not this is a restoration from created checkpoint
         :return:
         """
         try:
-            self.run_int_container()
+            self.run_int_container(restore)
         except Exception as ex:
             '''
             Need to catch any exception thrown during local execution, so using general exception class.
@@ -156,15 +167,15 @@ class SSHExecutor:
             '''
             exc = type(ex).__name__
             logger.critical("Interactive container execution error: " + exc + " " + ex.message)
-            self.terminate_clean()
+            self.terminate_clean(restore)
             self.remove_images()
             sys.exit("Terminating")
         finally:
             disconnect_all()
 
-    def job_termination(self):
+    def job_termination(self, restore):
         try:
-            self.terminate_clean()
+            self.terminate_clean(restore)
             self.remove_images()
         except RemoteExecutionError as rex:
             logger.error("Termination of containers failed / Image removal failed. " + rex.message)
@@ -213,15 +224,22 @@ class SSHExecutor:
             container.memory_swap = memory_swap_limit + "b"
             container.kernel_memory = kernel_memory + "b"
 
-        run(" ".join(container.run()))
+        if container.checkpoint_name is not None:
+            # If the checkpoint attributes name is not none, the container is queued for restoration
+            run(" ".join(container.restore()))
+        else:
+            # Runs the container as normal
+            run(" ".join(container.run()))
+
         # Call pbs_track to monitor processes
         container_id = run("docker inspect --format '{{ .State.Pid }}' %s" % container.name)
         run("%s -j %s -a '%s'" % (settings.pbs_track, self.job_id, container_id))
 
-    def run_int_container(self):
+    def run_int_container(self, restore=False):
         """
         Runs the interactive container on the host where the job was spawned.
         If a checkpoint was created, the container will be restored to it's previous state
+        :param restore: determines whether container is being restored from a saved state, or newly executed
         :return: Null
         """
         # Setup CGroup constraints set by torque
@@ -241,7 +259,12 @@ class SSHExecutor:
 
         # Run the interactive container
         logger.debug(" ".join(self.int_container.run()))
-        proc = Popen(self.int_container.run(), stdout=PIPE, stderr=PIPE)
+
+        if restore:
+            proc = Popen(self.int_container.restore(), stdout=PIPE, stderr=PIPE)
+        else:
+            proc = Popen(self.int_container.run(), stdout=PIPE, stderr=PIPE)
+
         self.local_run = True
         self.local_pid = proc.pid
         logger.debug("Local process id: " + str(self.local_pid))
@@ -300,7 +323,7 @@ class SSHExecutor:
         logger.debug("-- PBS_TRACK output --")
         self.print_output(pbst)
 
-    def terminate_clean(self):
+    def terminate_clean(self, restore=False):
         """
         Iterates through all remote containers and runs 'docker stop <container>' on each remote.
         :return: Null
@@ -332,6 +355,11 @@ class SSHExecutor:
                 os.remove(self.work_dir + "/hostfile.json")
             if host_file_format == 'list':
                 os.remove(self.work_dir + "/hostfile")
+
+        if restore:
+            # If the execution was after a restoration of a previous checkpoint,
+            # delete the checkpoint directory as execution has been successful
+            shutil.rmtree(self.checkpoint_dir, ignore_errors=True)
 
     def remove_images(self):
         unref_command = ['sh', self.script_dir + settings.unreferenced_containers_script]
@@ -395,7 +423,88 @@ class SSHExecutor:
         env.warn_only = False
 
     def checkpoint(self):
-        pass
+        # Create a hidden directory for storing checkpoint info
+        if not os.path.exists(self.checkpoint_dir):
+            os.makedirs(self.checkpoint_dir)
+
+        # Store all containers that require checkpointing
+        chk_containers = []
+        # Store whether interactive container should be checkpointed
+        chk_interactive = False
+        # Store containers that should be removed
+        stp_containers = []
+
+        # Store info for job recreation. Keys set to assigned name,
+        # values set to True/False for checkpoints,
+        # container object stored,
+        # boolean value stores whether container was interactive or not
+        job_info = dict()
+        job_info['slaves'] = []
+        job_info['interactive'] = []
+        job_info['network'] = None
+
+        # Add checkpoint info to remote docker containers
+        for container in self.containers:
+            if container.checkpointing:
+                container.checkpoint_name = container.name + '-checkpoint'
+                chk_containers.append(container)
+                job_info['slaves'].append([True, container])
+            else:
+                job_info['slaves'].append([False, container])
+                stp_containers.append(container)
+
+        if self.int_container.checkpointing:
+            self.int_container.checkpoint_name = self.int_container.name + '-checkpoint'
+            chk_interactive = True
+            job_info['interactive'].append([True, self.int_container])
+        else:
+            job_info['interactive'].append([False, self.int_container])
+
+        if self.create_net:
+            job_info['network'] = self.network_name
+
+        for container in chk_containers:
+            command = " ".join(container.checkpoint())
+            execute(self.execute_remote, command, host=container.execution_host)
+
+        if chk_interactive:
+            proc = Popen(self.int_container.checkpoint(), stdout=PIPE, stderr=PIPE)
+            self.print_output(proc)
+
+        # Stop and remove other containers
+        for container in stp_containers:
+            command = ' '.join(container.terminate()) + " && " + ' '.join(container.cleanup())
+            execute(self.execute_remote, command, host=container.execution_host)
+        if not chk_interactive:
+            proc = Popen(self.int_container.terminate(), stdout=PIPE, stderr=PIPE)
+            self.print_output(proc)
+
+        # Pickle job_info dictionary, and write to disk
+        pickle.dump(job_info, open(self.checkpoint_dir + '/job_info.p', "wb"))
+        sys.exit("Checkpoint complete")
 
     def restore(self):
-        pass
+        logger.info("-- Restoring job from checkpointed state")
+
+        # Load the created job_info file
+        job_info = pickle.load(open(self.checkpoint_dir + '/job_info.p', "rb"))
+
+        # Assign network name to class attribute, for remote container execution
+        if job_info['network'] is not None:
+            self.network_name = job_info['network']
+            self.create_net = True
+
+        # overwrite the containers attribute, with the container info from previous execution
+        self.containers = []
+        for container in job_info['slaves']:
+            self.containers.append(container[1])
+
+        # Assign new hosts, and cpu limits to containers an execute
+        self.assign_execute(restore=True)
+
+        if job_info['interactive'][0]:
+            # If interactive was checkpointed, restore the created checkpoint and execute
+            self.job_execution(restore=True)
+        else:
+            # Run the interactive container as normal without restoration
+            self.job_execution(restore=False)
