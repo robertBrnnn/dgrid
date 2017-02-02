@@ -14,9 +14,10 @@ class SchedulerTester(unittest.TestCase):
     def setUp(self):
         # Generate the host file so that it contains current hostname
         self.host_template = "host1\nhost2\nhost3\n"
+        self.cwd = os.getcwd()
         # Set job ID to avoid errors
         os.environ['PBS_JOBID'] = '8'
-        self.cwd = os.getcwd()
+        os.environ['PBS_O_WORKDIR'] = self.cwd
         self.hostname = socket.gethostname()
         self.host_template += socket.gethostname()
         self.hosts = self.cwd + '/tests/scheduling/generatedHF'

@@ -1,2 +1,2 @@
-__version__ = '0.2.12122016'
+__version__ = '0.2.02022017'
 version_string = [0, 2]

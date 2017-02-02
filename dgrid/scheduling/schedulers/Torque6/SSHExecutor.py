@@ -104,13 +104,21 @@ class SSHExecutor:
             self.network_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(10)])
             self.docker_network(create=True, remove=False)
 
-        logger.debug('Assigning containers to hosts')
+        self.assign_execute()
+        self.job_execution()
+        self.job_termination()
+
+    def assign_execute(self):
+        """
+        Assigns nodes to containers set to be run on remote machines.
+        In the case of checkpoint restoration,
+        previous execution host is overwritten with new ones assigned to the job
+        :return:
+        """
+        logger.info('-- Running remote containers --')
         for x in range(len(self.containers)):
             try:
-                if isinstance(self.hosts, list):
-                    host = self.hosts[x]
-                else:
-                    host = self.hosts
+                host = self.hosts[x] if isinstance(self.hosts, list) else self.hosts
             except IndexError:
                 logger.critical("Not enough hosts assigned to job. One host per container is required")
                 self.terminate_clean()
@@ -119,9 +127,7 @@ class SSHExecutor:
 
             container = self.containers[x]
             container.network = self.network_name if self.create_net else None
-
             try:
-                logger.debug("Running remote containers")
                 container.execution_host = host
                 logger.debug("Setting user to " + str(self.user))
                 container.user = str(self.user)
@@ -134,6 +140,13 @@ class SSHExecutor:
             finally:
                 disconnect_all()
 
+    def job_execution(self):
+        """
+        Runs the main part of job execution.
+        If the interactive container has a checkpoint, it'll be restored to the previous state to continues execution
+        If checkpoints did occur, and job finishes normally, the checkpoint data directory will be removed
+        :return:
+        """
         try:
             self.run_int_container()
         except Exception as ex:
@@ -146,19 +159,18 @@ class SSHExecutor:
             self.terminate_clean()
             self.remove_images()
             sys.exit("Terminating")
+        finally:
+            disconnect_all()
 
+    def job_termination(self):
         try:
             self.terminate_clean()
-        except RemoteExecutionError as rex:
-            logger.error("Termination of containers failed")
-            sys.exit("Aborting")
-
-        try:
             self.remove_images()
-        except RemoteExecutionError:
-            logger.error("Image removal failed")
+        except RemoteExecutionError as rex:
+            logger.error("Termination of containers failed / Image removal failed. " + rex.message)
             sys.exit("Aborting")
-
+        finally:
+            disconnect_all()
         sys.exit(0)
 
     def docker_network(self, create=False, remove=False):
@@ -179,6 +191,7 @@ class SSHExecutor:
 
     def run_container(self, container):
         """
+        Runs containers on remote machines
         Gets the constraints placed on the container by Torque and assigns them to the container
         Runs the container after, constraints have been assigned
         :param container: Container to be run
@@ -201,12 +214,14 @@ class SSHExecutor:
             container.kernel_memory = kernel_memory + "b"
 
         run(" ".join(container.run()))
+        # Call pbs_track to monitor processes
         container_id = run("docker inspect --format '{{ .State.Pid }}' %s" % container.name)
         run("%s -j %s -a '%s'" % (settings.pbs_track, self.job_id, container_id))
 
     def run_int_container(self):
         """
-        Runs the interactive container on the host where the job was spawned
+        Runs the interactive container on the host where the job was spawned.
+        If a checkpoint was created, the container will be restored to it's previous state
         :return: Null
         """
         # Setup CGroup constraints set by torque
@@ -276,7 +291,7 @@ class SSHExecutor:
             raise ProcessIdRetrievalFailure("Can't retrieve process id for interactive container")
 
         # Log the container process id
-        logger.debug("-- Container PID retrieval --")
+        logger.debug("-- Interactive container PID retrieval --")
         logger.debug("container pid: " + pid)
 
         # Call pbs_track to monitor interactive container
@@ -292,15 +307,16 @@ class SSHExecutor:
         """
         # Check if local interactive container is still running
         if self.local_run is True:
+            logger.info("-- Terminating local interactive container --")
             terminate = Popen(self.int_container.terminate(), stdout=PIPE, stderr=PIPE)
             self.print_output(terminate)
 
         # Remove the interactive container
-        logger.debug("removing local interactive container")
+        logger.info("-- Removing local interactive container --")
         container_cleanup = Popen(self.int_container.cleanup(), stdout=PIPE, stderr=PIPE)
         self.print_output(container_cleanup)
 
-        logger.debug("stopping and removing remote containers")
+        logger.info("-- Stopping and removing remote containers --")
         for container in self.containers:
             if container.execution_host is not None:
                 logger.debug('Removing container: ' + container.name + " On " + container.execution_host)
@@ -378,7 +394,7 @@ class SSHExecutor:
         run(command.decode('utf-8'))
         env.warn_only = False
 
-    def checkpoint_containers(self):
+    def checkpoint(self):
         pass
 
     def restore(self):
