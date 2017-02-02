@@ -5,6 +5,9 @@ To build DGrid run the following (must be run from the root directory of the pro
 
 The DGrid .whl package will be inside the created dist directory
 
+Specific configuration instructions for schedulers are available [here](../)
+...and should be followed ;-)
+
 # Installation
 To install DGrid run:
 `pip install DGrid-VERSION_NUMBER_HERE-py2-none-any.whl` where VERSION_NUMBER_HERE is the version number of the built .whl package.
