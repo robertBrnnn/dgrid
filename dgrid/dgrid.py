@@ -13,6 +13,7 @@ from functools import partial
 from .version import __version__
 from .conf import settings
 from .scheduling.schedule import load_job
+from .scheduling.utils.logger_ltf import LessThanFilter
 
 
 def termination_handler(job, signum, frame):
@@ -72,15 +73,28 @@ def main():
 
     # If DEBUG is enabled in settings, or on command line, enable debug logging. Otherwise INFO logging
     if settings.DEBUG or args.debug:
-        logging.basicConfig(format='%(levelname)s [%(name)s] : %(message)s  %(asctime)s',
-                            level=logging.DEBUG,
-                            stream=sys.stdout)
-        logger = logging.getLogger(__name__)
-        logger.debug('Debug logging started')
+        logger = logging.getLogger()
+        logger.setLevel(logging.NOTSET)
+
+        logging_handler_out = logging.StreamHandler(sys.stdout)
+        logging_handler_out.setLevel(logging.DEBUG)
+        logging_handler_out.addFilter(LessThanFilter(logging.WARNING))
+        logger.addHandler(logging_handler_out)
+
+        logging_handler_err = logging.StreamHandler(sys.stderr)
+        logging_handler_err.setLevel(logging.WARNING)
+        logger.addHandler(logging_handler_err)
     else:
-        logging.basicConfig(format='%(message)s  %(asctime)s',
-                            level=logging.INFO,
-                            stream=sys.stdout)
-        logger = logging.getLogger(__name__)
+        logger = logging.getLogger()
+        logger.setLevel(logging.NOTSET)
+
+        logging_handler_out = logging.StreamHandler(sys.stdout)
+        logging_handler_out.setLevel(logging.INFO)
+        logging_handler_out.addFilter(LessThanFilter(logging.WARNING))
+        logger.addHandler(logging_handler_out)
+
+        logging_handler_err = logging.StreamHandler(sys.stderr)
+        logging_handler_err.setLevel(logging.WARNING)
+        logger.addHandler(logging_handler_err)
 
     execute_job(args.hf, args.df)
