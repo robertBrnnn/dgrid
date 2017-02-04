@@ -8,6 +8,7 @@ Instantiates the required scheduler only, and returns it to calling script
 
 import logging
 import sys
+import signal
 
 from abc import ABCMeta, abstractmethod
 from dgrid.conf import settings
@@ -82,6 +83,51 @@ class Scheduler(object):
             sys.exit(1)
 
     get_scheduler = staticmethod(get_scheduler)
+
+
+class Job:
+    def __init__(self, hostfile, dockerfile):
+        self.hf = hostfile
+        self.df = dockerfile
+        self.job = None
+
+    def termination_handler(self, signum, frame):
+        # Handle termination signal from here, call terminate method of instantiated scheduler
+        logger.info('Pre-Termination signal received, terminating running containers')
+        self.job.terminate()
+        sys.exit(0)
+
+    def checkpoint_handler(self, signum, frame):
+        logger.info('Checkpoint signal received, running checkpoint on selected containers')
+        self.job.checkpoint()
+        sys.exit(0)
+
+    def execute(self):
+        """
+        Sets up job. Creates termination and checkpoint handlers if configured
+        Runs the task
+        :return:
+        """
+
+        # Create executor instance
+        self.load()
+
+        # Setup termination and checkpoint handlers
+        if hasattr(settings, 'termination_signal'):
+            signal.signal(settings.termination_signal, self.termination_handler)
+
+        if hasattr(settings, 'checkpoint_signal'):
+            signal.signal(settings.checkpoint_signal, self.checkpoint_handler)
+
+        # Run the task
+        self.job.run_job()
+
+    def load(self):
+        """
+        Sets up scheduler class, for running the job, loads into class attribute job.
+        :return:
+        """
+        self.job = load_job(self.hf, self.df)
 
 
 def load_job(hostfile, dockerdef):
