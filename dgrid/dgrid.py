@@ -19,11 +19,6 @@ def main():
 
     required = parser.add_argument_group("Required arguments")
 
-    required.add_argument('--hostfile',
-                          dest='hf',
-                          help="Hostfile to use for execution",
-                          required=True)
-
     required.add_argument('--dockdef',
                           dest='df',
                           help="Docker json definition file",
@@ -31,6 +26,12 @@ def main():
 
     # Optional CLI arguments
     optional = parser.add_argument_group("Optional arguments")
+
+    optional.add_argument('--hostfile',
+                          dest='hf',
+                          help="Hostfile to use for execution",
+                          required=False)
+
     optional.add_argument('-h',
                           '--help',
                           help="Display this help message and exit",
@@ -55,5 +56,5 @@ def main():
     logger = Logger(args.debug).get_logger()
 
     # Create job instance and execute
-    job = Job(args.hf, args.df)
+    job = Job(args.df, args.hf)
     job.execute()

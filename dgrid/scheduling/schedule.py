@@ -21,7 +21,7 @@ class Scheduler(object):
     # abstract class reference docs.python.org/2/library/abc.html
     __metaclass__ = ABCMeta
 
-    def __init__(self, containers, hosts):
+    def __init__(self, containers, hosts=None):
         self.containers = containers
         self.hosts = hosts
 
@@ -57,7 +57,7 @@ class Scheduler(object):
         """
         raise NotImplementedError
 
-    def get_scheduler(hosts, containers):
+    def get_scheduler(containers, hosts=None):
         """
         Instantiates the relevant scheduler, with container list and host list
         :param hosts: Array containing all hosts assigned to the job
@@ -86,7 +86,7 @@ class Scheduler(object):
 
 
 class Job:
-    def __init__(self, hostfile, dockerfile):
+    def __init__(self, dockerfile, hostfile=None):
         self.hf = hostfile
         self.df = dockerfile
         self.job = None
@@ -127,10 +127,10 @@ class Job:
         Sets up scheduler class, for running the job, loads into class attribute job.
         :return:
         """
-        self.job = load_job(self.hf, self.df)
+        self.job = load_job(self.df, self.hf)
 
 
-def load_job(hostfile, dockerdef):
+def load_job(dockerdef, hostfile=None):
     """
     Loads the containers and hosts from their relevant files into arrays, and returns the required scheduler
     :param hostfile: Hostfile for the job
@@ -139,4 +139,4 @@ def load_job(hostfile, dockerdef):
     """
     containers, hosts = fileparser.load_data(dockerdef, hostfile)
 
-    return Scheduler.get_scheduler(hosts, containers)
+    return Scheduler.get_scheduler(containers, hosts)

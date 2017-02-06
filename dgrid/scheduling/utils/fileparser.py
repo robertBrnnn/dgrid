@@ -39,20 +39,24 @@ def get_containers(dockerdef):
     return containers
 
 
-def get_hosts(hostfile):
+def get_hosts(hostfile=None):
     """
     Reads hostfile, and returns an array of hosts
     :param hostfile: File containing list of hosts assigned to job, split by '\n'
     :return: Hosts array
     """
     hosts = []
-    logger.debug('Loading host file')
-    with open(hostfile, 'r') as f:
-        host_list = f.read().splitlines()
-        for host in host_list:
-            hosts.append(host.decode('utf-8'))
+    if hostfile is None:
+        logger.debug("No host file set")
+        return None
+    else:
+        logger.debug('Loading host file')
+        with open(hostfile, 'r') as f:
+            host_list = f.read().splitlines()
+            for host in host_list:
+                hosts.append(host.decode('utf-8'))
 
-    return hosts
+        return hosts
 
 
 def load_data(dockerdef, hostfile):

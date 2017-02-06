@@ -27,21 +27,21 @@ class SchedulerTester(unittest.TestCase):
         with open(self.hosts, 'w') as f:
             f.write(self.host_template)
 
-        scheduler = schedule.load_job(self.hosts, self.cont)
+        scheduler = schedule.load_job(self.cont, self.hosts)
         assert scheduler.__class__.__name__ == settings.scheduler
 
     def test_get_scheduler1(self):
         containers = fileparser.get_containers(self.cont)
         hosts = fileparser.get_hosts(self.hosts)
 
-        scheduler = schedule.Scheduler.get_scheduler(hosts, containers)
+        scheduler = schedule.Scheduler.get_scheduler(containers, hosts)
         assert scheduler.__class__.__name__ == settings.scheduler
 
     def test_get_scheduler_w_bad_container_def(self):
         containers = fileparser.get_containers(self.cwd + '/tests/scheduling/dockerdef2.json')
         hosts = fileparser.get_hosts(self.hosts)
 
-        self.assertRaises(InteractiveContainerNotSpecified, schedule.Scheduler.get_scheduler, hosts, containers)
+        self.assertRaises(InteractiveContainerNotSpecified, schedule.Scheduler.get_scheduler, containers, hosts)
 
     def test_get_scheduler_wo_hostname(self):
         hosts = fileparser.get_hosts(self.hosts)

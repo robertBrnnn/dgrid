@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class Torque6(Scheduler):
-    def __init__(self, containers, hosts):
+    def __init__(self, containers, hosts=None):
         Scheduler.__init__(self, containers, hosts)
         self.containers = containers
         self.hosts = hosts

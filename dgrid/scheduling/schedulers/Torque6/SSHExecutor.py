@@ -18,6 +18,7 @@ from fabric.network import disconnect_all
 from dgrid.scheduling.utils.Errors import HostValueError, InteractiveContainerNotSpecified, RemoteExecutionError, \
     ProcessIdRetrievalFailure
 from dgrid.scheduling.utils.docker_netorking import add_networking
+from dgrid.scheduling.utils.fileparser import get_hosts
 
 from dgrid.conf import settings
 
@@ -32,6 +33,11 @@ class SSHExecutor:
         :param hosts: list of hosts
         """
         self.hosts = hosts
+
+        if self.hosts is None:
+            logger.debug("Retrieving assigned hosts with environment variable PBS_NODEFILE")
+            self.hosts = get_hosts(os.environ.get("PBS_NODEFILE"))
+
         self.containers = containers
         # get hostname so we can differentiate when running containers, no need to ssh into current machine to execute
         self.hostname = socket.gethostname()
