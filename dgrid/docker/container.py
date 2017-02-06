@@ -7,6 +7,9 @@ Class defining docker containers and their relevant commands
 
 
 class Container(object):
+    """
+    Represent all the Docker container commands used to interface with Docker daemon
+    """
 
     def __init__(self, json):
         """

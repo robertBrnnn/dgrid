@@ -1,3 +1,6 @@
+"""
+Main logging class for DGrid.
+"""
 import logging
 import sys
 from dgrid.conf import settings
@@ -17,6 +20,9 @@ class _LessThanFilter(logging.Filter):
 
 
 class Logger:
+    """
+    Used to create the logger used during execution
+    """
     def __init__(self, cli_debug):
         self.cli_debug = cli_debug
         self.settings_debug = settings.DEBUG

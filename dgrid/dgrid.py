@@ -12,6 +12,10 @@ from .scheduling.utils.logger import Logger
 
 
 def main():
+    """
+    CLI for DGrid.
+    :return:
+    """
     # Build command line
     global logger
     parser = argparse.ArgumentParser(description='Command Line utility for executing batch tasks in Docker',

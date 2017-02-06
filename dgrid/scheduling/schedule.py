@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 class Scheduler(object):
+    """
+    Scheduler base class, all scheduler subclasses must implement this base class.
+    """
     # abstract class reference docs.python.org/2/library/abc.html
     __metaclass__ = ABCMeta
 
@@ -86,18 +89,36 @@ class Scheduler(object):
 
 
 class Job:
+    """
+    Represents the high level of a job.
+    Loads containers from file, and hosts if specified.
+    Sets up signal handlers for termination and/or checkpoints
+    Runs the job via execute method
+    """
     def __init__(self, dockerfile, hostfile=None):
         self.hf = hostfile
         self.df = dockerfile
         self.job = None
 
     def termination_handler(self, signum, frame):
+        """
+        Called when configured termination signal is received. Will attempt to terminate the containers and exit
+        :param signum: required by signal library, not used
+        :param frame: required by signal library, not used
+        :return:
+        """
         # Handle termination signal from here, call terminate method of instantiated scheduler
         logger.info('Pre-Termination signal received, terminating running containers')
         self.job.terminate()
         sys.exit(0)
 
     def checkpoint_handler(self, signum, frame):
+        """
+        Called when configured checkpoint signal is received. Will attempt to checkpoint containers and exit
+        :param signum: required by signal library, not used
+        :param frame: required by signal library, not used
+        :return:
+        """
         logger.info('Checkpoint signal received, running checkpoint on selected containers')
         self.job.checkpoint()
         sys.exit(0)

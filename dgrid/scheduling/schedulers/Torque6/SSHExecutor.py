@@ -26,6 +26,10 @@ logger = logging.getLogger(__name__)
 
 
 class SSHExecutor:
+    """
+    SSHExecutor class used by Torque scheduler class to run a job.
+    Contains all the logic for execution, termination, and image cleanup
+    """
 
     def __init__(self, containers, hosts):
         """
@@ -169,6 +173,12 @@ class SSHExecutor:
             disconnect_all()
 
     def job_termination(self):
+        """
+        Runs the termination steps of execution.
+        Terminates docker containers and removes the container and any volumes used
+        Runs the configured image cleanup scripts
+        :return:
+        """
         try:
             self.terminate_clean()
             self.remove_images()
@@ -340,6 +350,11 @@ class SSHExecutor:
                 os.remove(self.work_dir + "/hostfile")
 
     def remove_images(self):
+        """
+        Removes images based on value set in settings file.
+        Runs scripts from scripts directory
+        :return:
+        """
         unref_command = ['sh', self.script_dir + settings.unreferenced_containers_script]
 
         if settings.image_cleanup == 1:
@@ -385,6 +400,11 @@ class SSHExecutor:
                 self.print_output(image_cleanup)
 
     def print_output(self, process):
+        """
+        Prints the output from a subprocess Popen
+        :param process: An instance of Subprocess.Popen
+        :return:
+        """
         for line in iter(process.stdout.readline, ''):
             logger.info(line)
         for line in iter(process.stderr.readline, ''):
