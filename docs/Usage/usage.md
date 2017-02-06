@@ -14,3 +14,7 @@ There are three utility commands included as well:
 
 __Notes on defining you JSON docker definition are available 
 [here](../DockerDefinitions/docker_defs.md)__
+
+__An example job for Torque can be found [here](../TorqueExample/torque_example.md)__
+This example job explains some intricacies of Docker execution on Torque 
+and how to overcome them.
