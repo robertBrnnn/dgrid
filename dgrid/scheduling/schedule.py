@@ -13,6 +13,7 @@ import signal
 from abc import ABCMeta, abstractmethod
 from dgrid.conf import settings
 from dgrid.scheduling.utils import fileparser
+from dgrid.scheduling.utils.Errors import ImportedSchedulerClassError
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,10 @@ class Scheduler(object):
             sched = klass(containers, hosts)
 
             # Return the scheduler
-            return sched
+            if issubclass(klass, Scheduler) is True and isinstance(sched, Scheduler) is True:
+                return sched
+            raise ImportedSchedulerClassError("%s is not an instance and/or subclass of Scheduler class"
+                                              % scheduler_class)
         except ImportError:
             logger.error("No Scheduler named %s. Check configuration files." % scheduler_class)
             sys.exit(1)
