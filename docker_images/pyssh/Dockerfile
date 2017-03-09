@@ -22,7 +22,7 @@ RUN echo "export VISIBLE=now" >> /etc/profile
 RUN useradd -m -d /home/$USER1 -u $UID1 $USER1 && \
     echo "$USER1:password" | chpasswd && \
     echo "$USER1 ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers 
-ENV SSHDIR $HOME1/.ssh/
+ENV SSHDIR /home/$USER1/.ssh/
 
 RUN mkdir -p ${SSHDIR}
 
